@@ -1,0 +1,97 @@
+version: '3.8'
+
+
+# ====================================== AIRFLOW environment VARIABLES =======================================
+x-environment: &airflow_environment
+  - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+  - AIRFLOW__CELERY__BROKER_URL=redis://:@redis:6379/0
+  - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres/airflow
+  - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=False
+  - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
+  - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
+  - AIRFLOW_CONN_SRC=postgresql://myuser:matchpass@source:5432/soccer
+  - HOURS_AGO=4
+
+x-depends_on: &airflow-depends-on
+  postgres:
+    condition: service_healthy
+
+x-airflow-image: &airflow_image apache/airflow:2.4.0-python3.9
+
+# ===========
+
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  initdb_adduser:
+    image: *airflow_image
+    depends_on:
+      <<: *airflow-depends-on
+    environment: *airflow_environment
+    entrypoint: /bin/bash
+    command: -c 'airflow db init && airflow users create --username airflow --password airflow --firstname Marin --lastname Marin --role Admin --email admin@example.org'
+
+  webserver:
+    image: *airflow_image
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    environment: *airflow_environment
+    command: webserver
+    depends_on:
+      <<: *airflow-depends-on
+      initdb_adduser:
+        condition: service_completed_successfully
+
+  scheduler:
+    image: *airflow_image
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"' ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      <<: *airflow-depends-on
+      initdb_adduser:
+        condition: service_completed_successfully
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - logs:/opt/airflow/logs
+    environment: *airflow_environment
+    command: scheduler
+
+  source:
+    build:
+      context: .
+      dockerfile: postgres-source/.
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+
+volumes:
+  logs:
+    name: airflow_logs
