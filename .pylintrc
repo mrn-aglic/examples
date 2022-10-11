@@ -5,7 +5,6 @@ jobs=0
 [MESSAGES CONTROL]
 disable =
   abstract-method,
-  bad-continuation,
   bare-except,
   broad-except,
   fixme,
@@ -16,7 +15,6 @@ disable =
   missing-docstring,
   no-member,
   no-name-in-module,
-  no-self-use,
   no-value-for-parameter,
   protected-access,
   redefined-outer-name,
@@ -27,6 +25,7 @@ disable =
   unspecified-encoding,
   wrong-import-order,
   wrong-import-position,
+  pointless-statement
 
 [REPORTS]
 output-format=colorized

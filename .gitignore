@@ -1,1 +1,7 @@
 .idea
+db_data_race/dags/copy_to_sink_dag/__pycache__
+task_mapping/dags/task_mapping/__pycache__
+task_mapping/dags/task_mapping_taskflow_api/__pycache__
+db_data_race/.DS_Store
+db_data_race/dags/copy_to_sink_dag_with_ratings/__pycache__
+db_data_race/dags/*/__pycache__

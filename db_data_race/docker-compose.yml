@@ -6,17 +6,16 @@ x-environment: &airflow_environment
   - AIRFLOW__CORE__EXECUTOR=LocalExecutor
   - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=False
   - AIRFLOW__CORE__LOAD_EXAMPLES=False
-  - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
+  - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
   - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
-  - AIRFLOW_CONN_SRC=postgresql://myuser:matchpass@source:5432/soccer
-  - HOURS_AGO=4
+  - AIRFLOW_CONN_SRC=postgresql://myuser:moviespass@source:5432/movies
+  - AIRFLOW_CONN_MYSQL=mysql://myuser:moviespass@sink:3306/bq?local_infile=1
 
 x-depends_on: &airflow-depends-on
   postgres:
     condition: service_healthy
 
-x-airflow-image: &airflow_image apache/airflow:2.4.0-python3.9
-
+x-airflow-image: &airflow_image apache/airflow:2.4.0-python3.8
 # ===========
 
 
@@ -27,6 +26,8 @@ services:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "airflow" ]
       interval: 5s
@@ -44,6 +45,8 @@ services:
 
   webserver:
     image: *airflow_image
+    env_file:
+      - .env
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
       interval: 10s
@@ -51,6 +54,7 @@ services:
       retries: 5
     restart: unless-stopped
     volumes:
+      - ./dags:/opt/airflow/dags
       - logs:/opt/airflow/logs
     ports:
       - "8080:8080"
@@ -64,6 +68,8 @@ services:
   scheduler:
     image: *airflow_image
     restart: unless-stopped
+    env_file:
+      - .env
     healthcheck:
       test: [ "CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"' ]
       interval: 10s
@@ -85,11 +91,18 @@ services:
       dockerfile: postgres-source/.
     ports:
       - "5433:5432"
-    environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
+
+  sink:
+    build:
+      context: .
+      dockerfile: mysql-sink/.
+    command:
+      - '--local-infile=1'
+    ports:
+      - "3306:3306"
 
 volumes:
+  postgres-db-volume:
+    name: airflow_db_data_race_postgres
   logs:
-    name: airflow_logs
+    name: airflow_logs_db_data_race
