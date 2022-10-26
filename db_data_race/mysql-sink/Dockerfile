@@ -15,9 +15,7 @@ RUN apt-get -y update && apt-get upgrade -y && \
 COPY mysql-sink/init.sql /init/init.sql
 COPY mysql-sink/mysql-init.sh /docker-entrypoint-initdb.d/mysql-init.sh
 
-RUN /usr/local/bin/docker-entrypoint.sh mysqld --secure-file-priv="/data/"
-#    cp -R /var/lib/mysql/data/* /data
-
+RUN /usr/local/bin/docker-entrypoint.sh mysqld  --secure-file-priv="/data/"
 
 
 FROM mysql-builder as mysql-sink
