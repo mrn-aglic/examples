@@ -21,5 +21,13 @@ Here is the list of demonstrated new features in Airflow 2.3:
 Here is the list of demonstrated new features in Airflow 2.4:
 1. [ ] Data-aware scheduling
 
+# Wildfires data
+The wildfires data used in the repo is a sample of the 
+1.88 million wildfires from Kaggle ([see here](https://www.kaggle.com/datasets/rtatman/188-million-us-wildfires)).
+The sample contains 225 000 rows. I chose this amount because
+the csv file ends up with just below 100 MB, which is the GitHub
+file size limit for a single file. 
+
 # References
 1. https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html
+2. https://www.kaggle.com/datasets/rtatman/188-million-us-wildfires
