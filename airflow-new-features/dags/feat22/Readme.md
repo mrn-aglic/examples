@@ -4,9 +4,68 @@ This subdirectory covers some features introduced in Airflow
 2.2. 
 
 These include:
+- [ ] custom timetables
+- [x] defferable operators
 
-## Custom timetables
-The most relevant file here is CustomTimetable.py. 
+# Custom timetables
+The most relevant file here is `CustomTimetable.py`. 
+The file is located in the plugins folder and the 
+CustomTimetable defined is treated as a plugin. 
+
+Timetables allow us to customize the schedule and interval
+in which Airflow DAGs will run. The example given in
+the Airflow docs describes a use-case in which we want 
+a DAG to collect data from Monday to Friday. 
+
+This could be achieved by setting the schedule interval:
+```shell
+schedule_interval="0 0 * * 1-5"
+```
+But, this means that for Friday, we will get the data on 
+Monday. What a user may want is to process the data for
+Friday on Saturday. 
+
+To implement a custom timetatble, the class needs to 
+inherit from `Timetable` and implement two abstract 
+methods. Once you implemented the custom timetable, 
+you need to register it as a plugin, which is done
+in this example with:
+```python
+class CustomTimetablePlugin(AirflowPlugin):
+    name = "custom_timetable"
+    timetables = [CustomTimetable]
+```
+
+You can view the example in the airflow docs [here](https://airflow.apache.org/docs/apache-airflow/2.2.0/howto/timetable.html).
+
+The custom timetable that you define needs to implement
+two methods:
+1. `infer_data_interval`
+2. `next_dagrun_info` 
+
+The first method determines how to infer the run interval
+when the DAG is run manually. For example, out of schedule.
+
+The scheduler uses the second method to determine the 
+DAG's regular schedule. 
+
+For this repo, and to try and better understand how 
+timetables work, I changed the implementation of the 
+example a bit. 
+
+## CustomTimetable in repo
+Let's see how we implemented the CustomTimetable.
+
+We know that a DAG run occurs when the interval of the
+run expires. So, the approach is basically to **calculate
+the start datetime for the interval**, and then simply
+**add 1 hour to it for the end of the interval**.
+
+We'll start with the simpler method first, i.e. 
+`infer_data_interval`:
+```python
+
+```
 
 # Deferrable operators and triggers
 
@@ -58,12 +117,19 @@ operator resumes work.
 Of course, since we are in a distributed setting, I **assume**
 that this **payload should not be large**.
 
+Maybe the triggerer service should asynchronously write
+large datasets to file or cloud storage? This seems the
+most logical approach and seems to be hinted in the docs:
+```text
+Be especially careful when doing filesystem calls, as if the underlying filesystem is network-backed it may be blocking.
+```
+
 **IMPORTANT:** no state is persisted in a deferred operator.
 The only way to pass state to a new instance of the operator
 is via `kwargs` and `method_name`. Although, personally,
 I fail to see how passing through `method_name` is useful.
 You should also avoid having persistant state in the 
-trigger. Everythin that the trigger needs should be passed
+trigger. Everything that the trigger needs should be passed
 through the constructor.
 
 ### Summary
@@ -243,3 +309,4 @@ and the operator fails.
 1. https://airflow.apache.org/docs/apache-airflow/stable/concepts/deferring.html
 2. https://registry.astronomer.io/providers/astronomer-providers/modules/httpsensorasync
 3. https://airflow.apache.org/docs/apache-airflow/stable/modules_management.html
+4. https://airflow.apache.org/docs/apache-airflow/2.2.0/howto/timetable.html
