@@ -123,8 +123,13 @@ There are 3 main components to the deferrable operator
 2. the operator's dependency - HttpTrigger
 3. the trigger's dependency - HttpAsyncHook
 
-Why number 3? Because defferable operators hsould be
+Why number 3? Because deferrable operators should be
 async from top to bottom. 
+
+To demonstrate an API call, a wildfires-api service is
+added with the `/api/get_with_delay` endpoint that accepts
+a delay parameter telling the endpoint how long to wait
+before returning the results.
 
 ### HttpAsyncHook
 The hook implementation must be async. In this example,
@@ -214,18 +219,20 @@ However, the most organised way of adding custom code
 is to create a Python package and install it to a 
 location that is on the Python path. 
 
-[//]: # (However, this directory may not be on the python path.)
-
-[//]: # (Why is it important to keep it on the python path?)
-
-[//]: # (Because of the serialize method of the trigger.)
-
 Ideally, the module that you install will have its own 
 repo on GitHub and you would install it from the repo 
-while building the Dockerfile. 
+while building the Dockerfile. In this case,
+the module should be installed on both the scheduler
+and triggerer. 
 
-Both the scheduler and triggerer need to have the package
-installed. 
+In my setup, it seems like the module needs to be installed
+only on the triggerer. The dags have access to the module
+because their located in a package structure that allows
+them to find it. 
+
+However, the BashOperator, and perhaps some others, won't
+be able to find it because they are not executing
+from the dags folder. 
 
 **The logs** for the trigger instance (`HttpTrigger` in the 
 example and its dependencies) **will show in the triggerer

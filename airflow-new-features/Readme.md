@@ -5,7 +5,7 @@ introduced in Apache Airflow 2.2, 2.3 and 2.4.
 
 
 **One of the most important changes in newer versions of
-Airflow is the deprecation of execution_date. 
+Airflow is the deprecation of `execution_date`. 
 Look at reference [1]**
 
 Here is the list of demonstrated new features in Airflow 2.2:
@@ -20,3 +20,6 @@ Here is the list of demonstrated new features in Airflow 2.3:
 
 Here is the list of demonstrated new features in Airflow 2.4:
 1. [ ] Data-aware scheduling
+
+# References
+1. https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html
