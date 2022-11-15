@@ -18,6 +18,7 @@ with DAG(
     dag_id="deferrable_operator_dag",
     description="This DAG demonstrates the use of defferable operators",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
+    schedule="@hourly",
     tags=["airflow2.2", "deferrable operator"],
 ):
     # let's just check that the package is accessible from source on the scheduler

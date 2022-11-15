@@ -33,10 +33,12 @@ class HttpTrigger(BaseTrigger):
 
         while retry_num <= self.retry_limit:
             try:
-                await http_hook.run(
+                response = await http_hook.run(
                     endpoint=self.endpoint, data=self.data, headers=self.headers
                 )
-                yield TriggerEvent(True)
+
+                data = await response.json()
+                yield TriggerEvent({"data-length": len(data)})
             except AirflowException as e:
                 await asyncio.sleep(self.retry_delay)
 

@@ -43,5 +43,7 @@ class HttpSensorAsync(BaseSensorOperator):
         )
 
     def execute_complete(self, context: Context, event: Optional[dict] = None) -> None:
+        self.log.info(event)
         self.log.info("%s completed successfully.", self.task_id)
+        self.log.info(event["data-length"])
         return event

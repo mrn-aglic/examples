@@ -17,6 +17,7 @@ Here is the list of demonstrated new features in Airflow 2.3:
 2. [x] Tree view replaced by Grid view (demonstrated by default)
 3. [ ] LocalKubernetesExecutor
 4. [ ] Reuse of decorated tasks
+5. [ ] Store connections from JSON format
 
 Here is the list of demonstrated new features in Airflow 2.4:
 1. [ ] Data-aware scheduling

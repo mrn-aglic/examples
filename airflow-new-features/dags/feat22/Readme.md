@@ -385,6 +385,17 @@ operator resumes work.
 Of course, since we are in a distributed setting, I **assume**
 that this **payload should not be large**.
 
+The HttpTrigger in this repo returns the length of data
+obtained. You can check how the value is accessed in the
+deferrable operator:
+```python
+def execute_complete(self, context: Context, event: Optional[dict] = None) -> None:
+    self.log.info(event)
+    self.log.info("%s completed successfully.", self.task_id)
+    self.log.info(event["data-length"])
+    return event
+```
+
 Maybe the triggerer service should asynchronously write
 large datasets to file or cloud storage? This seems the
 most logical approach and seems to be hinted in the docs:
