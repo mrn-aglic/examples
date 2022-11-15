@@ -584,6 +584,15 @@ example and its dependencies) **will show in the triggerer
 service**, not the scheduler. Unless an exception is thrown
 and the operator fails.
 
+## PYTHONASYIONCIODEBUG
+In the docker-compose.feat22.yml file we have:
+```yaml
+x-environment: &airflow_environment
+...
+  - PYTHONASYNCIODEBUG=1 # used to check whether the trigger was correctly implemented with all async calls
+```
+I'm not sure whether this variable is correctly set...
+
 # References
 1. https://airflow.apache.org/docs/apache-airflow/stable/concepts/deferring.html
 2. https://registry.astronomer.io/providers/astronomer-providers/modules/httpsensorasync

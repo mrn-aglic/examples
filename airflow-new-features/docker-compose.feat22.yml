@@ -9,6 +9,8 @@ x-environment: &airflow_environment
   - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
   - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
   - AIRFLOW_CONN_WILDFIRES_API=http://wildfires-api:8000
+  - PYTHONASYNCIODEBUG=1 # used to check whether the trigger was correctly implemented with all async calls
+  - AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE=True # used while developing CustomTimetable
 
 x-depends_on: &airflow-depends-on
   postgres:
@@ -69,7 +71,6 @@ services:
 
   scheduler:
     image: *airflow_image
-#    build: .
     container_name: airflow-feat-scheduler
     restart: unless-stopped
     env_file:
@@ -91,7 +92,6 @@ services:
     command: scheduler
 
   triggerer:
-#    image: *airflow_image
     build: .
     container_name: airflow-feat-triggerer
     command: triggerer
@@ -125,21 +125,6 @@ services:
     ports:
       - "8000:8000"
 
-#  source:
-#    build:
-#      context: .
-#      dockerfile: postgres-source/.
-#    ports:
-#      - "5433:5432"
-#
-#  sink:
-#    build:
-#      context: .
-#      dockerfile: mysql-sink/.
-#    command:
-#      - '--local-infile=1'
-#    ports:
-#      - "3306:3306"
 
 volumes:
   logs:
