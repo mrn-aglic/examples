@@ -25,7 +25,8 @@ disable =
   unspecified-encoding,
   wrong-import-order,
   wrong-import-position,
-  pointless-statement
+  pointless-statement,
+  chained-comparison
 
 [REPORTS]
 output-format=colorized

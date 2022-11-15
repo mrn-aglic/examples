@@ -32,6 +32,8 @@ services:
       test: [ "CMD", "pg_isready", "-U", "airflow" ]
       interval: 5s
       retries: 5
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
@@ -143,3 +145,4 @@ services:
 
 volumes:
   logs:
+  postgres-db:

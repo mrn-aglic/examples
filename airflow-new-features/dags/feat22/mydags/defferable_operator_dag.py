@@ -15,7 +15,7 @@ def check(**context):
 
 
 with DAG(
-    dag_id="defferable_operator_dag",
+    dag_id="deferrable_operator_dag",
     description="This DAG demonstrates the use of defferable operators",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     tags=["airflow2.2", "deferrable operator"],
