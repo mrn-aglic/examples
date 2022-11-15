@@ -28,6 +28,7 @@ repos:
     rev: 5.10.1
     hooks:
       - id: isort
+        args: [ "--profile", "black" ]
         # extra dependencies for config in pyproject.toml
         additional_dependencies: ["toml"]
 

@@ -323,11 +323,16 @@ hour is 17. In this case delta will be 0.
 Therefore, we need to fix the delta by setting it to 1.
 Otherwise, the scheduler will enter an infinite loop.
 
+## Limitations
+There are a few limitations that you need to be aware of:
+1. timetables are parsed during a dag run, so you should avoid slow and lengthy code and
+connecting to databases or other external sources;
+2. methods should always return the same result.
+
 ## Other examples
 You can view the other examples from: 
 1. airflow docs [here](https://airflow.apache.org/docs/apache-airflow/2.2.0/howto/timetable.html).
 2. Astronomer [here](https://docs.astronomer.io/learn/scheduling-in-airflow).
-
 
 
 # Deferrable operators and triggers

@@ -12,9 +12,9 @@ with DAG(
     # start_date=pendulum.now().add(days=2).subtract(
     #     hours=int(os.environ["HOURS_AGO_FOR_TIMETABLES"])
     # ),
-    start_date=pendulum.now()
-    .subtract(days=2)
-    .subtract(hours=int(os.environ["HOURS_AGO_FOR_TIMETABLES"])),
+    start_date=pendulum.now().subtract(
+        hours=int(os.environ["HOURS_AGO_FOR_TIMETABLES"])
+    ),
     timetable=CustomTimetable(),
     # catchup=False, # left for playing
     tags=["airflow2.2", "custom timetable"],
