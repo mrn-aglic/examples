@@ -5,7 +5,12 @@ This subdirectory covers some features introduced in Airflow
 
 These include:
 - [x] custom timetables
-- [ ] defferable operators
+- [x] deferrable operators
+
+To run only Airflow 2.2 examples, run:
+```shell
+make run-2.2
+```
 
 # Custom timetables
 The most relevant file here is `CustomTimetable.py`. 
