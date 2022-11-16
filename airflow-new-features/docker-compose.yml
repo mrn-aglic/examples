@@ -45,7 +45,6 @@ services:
 
   webserver:
     image: *airflow_image
-#    build: .
     container_name: airflow-feat-webserver
     env_file:
       - .env
@@ -69,7 +68,6 @@ services:
 
   scheduler:
     image: *airflow_image
-#    build: .
     container_name: airflow-feat-scheduler
     restart: unless-stopped
     env_file:
@@ -90,24 +88,24 @@ services:
     environment: *airflow_environment
     command: scheduler
 
-  triggerer:
-#    image: *airflow_image
-    build: .
-    container_name: airflow-feat-triggerer
-    command: triggerer
-    environment: *airflow_environment
-    healthcheck:
-      test: [ "CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"' ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    restart: always
-    volumes:
-      - ./dags:/opt/airflow/dags
-    depends_on:
-      <<: *airflow-depends-on
-      initdb_adduser:
-        condition: service_completed_successfully
+#  triggerer:
+##    image: *airflow_image
+#    build: .
+#    container_name: airflow-feat-triggerer
+#    command: triggerer
+#    environment: *airflow_environment
+#    healthcheck:
+#      test: [ "CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"' ]
+#      interval: 10s
+#      timeout: 10s
+#      retries: 5
+#    restart: always
+#    volumes:
+#      - ./dags:/opt/airflow/dags
+#    depends_on:
+#      <<: *airflow-depends-on
+#      initdb_adduser:
+#        condition: service_completed_successfully
 
   wildfires-api:
     build:
@@ -125,22 +123,36 @@ services:
     ports:
       - "8000:8000"
 
-#  source:
-#    build:
-#      context: .
-#      dockerfile: postgres-source/.
-#    ports:
-#      - "5433:5432"
-#
-#  sink:
-#    build:
-#      context: .
-#      dockerfile: mysql-sink/.
-#    command:
-#      - '--local-infile=1'
-#    ports:
-#      - "3306:3306"
+
+  locals3:
+    image: minio/minio
+    container_name: airflow-feat-s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=user
+      - MINIO_ROOT_PASSWORD=password
+    command: server --console-address ":9001" /data
+    volumes:
+      - locals3-data:/minio/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  locals3_init:
+    build: ./minio/
+    environment:
+      - PASSWORD=password
+      - COPY_DIR=false
+      - INPUT_BUCKETS=datasets
+    depends_on:
+      - locals3
+    entrypoint: /bin/sh entrypoint.sh
 
 volumes:
   logs:
   postgres-db:
+  locals3-data:

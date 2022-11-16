@@ -9,8 +9,8 @@ Airflow is the deprecation of `execution_date`.
 Look at reference [1]**
 
 Here is the list of demonstrated new features in Airflow 2.2:
-1. [ ] Custom timetables
-2. [ ] Deferrable operators and triggers
+1. [x] Custom timetables
+2. [x] Deferrable operators and triggers
 
 Here is the list of demonstrated new features in Airflow 2.3:
 1. [ ] Dynamic Task Mapping
@@ -20,7 +20,25 @@ Here is the list of demonstrated new features in Airflow 2.3:
 5. [ ] Store connections from JSON format
 
 Here is the list of demonstrated new features in Airflow 2.4:
-1. [ ] Data-aware scheduling
+1. [ ] Data-aware (data-driven) scheduling
+   1. [ ] Consolidated schedule parameter
+
+# Running the examples
+
+You can run all of the examples with
+```shell
+docker-compose up
+```
+or
+```shell
+make run
+```
+
+You can also run only examples specific to certain versions
+with: 
+```shell
+make run-2.2
+```
 
 # Wildfires data
 The wildfires data used in the repo is a sample of the 
