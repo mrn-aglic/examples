@@ -1,9 +1,9 @@
 #!/bins/sh
 
 echo "INPUT_BUCKETS=$INPUT_BUCKETS"
-echo "COPY_DATA=$COPY_DATA"
+echo "COPY_DIR=$COPY_DIR"
 
-while ! /usr/bin/mc config host add locals3 http://locals3:9000 user $PASSWORD;
+while ! /usr/bin/mc config host add locals3 http://locals3:9000 $USER $PASSWORD;
   do echo 'MinIO not up and running yet...' && sleep 1;
 done;
 
@@ -36,13 +36,13 @@ else
 
     echo $file and $bucket
 
-    /usr/bin/mc mb "locals3/$bucket"
+    /usr/bin/mc mb "$bucket"
 
     echo $file
     if [ ! -z "${file}" ]
     then
       echo "ENTERED IF"
-      /usr/bin/mc cp "/data/$file" "locals3/$bucket"
+      /usr/bin/mc cp "/data/$file" "$bucket"
     fi
   done;
 fi
