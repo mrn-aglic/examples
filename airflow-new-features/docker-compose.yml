@@ -67,7 +67,8 @@ services:
         condition: service_completed_successfully
 
   scheduler:
-    image: *airflow_image
+#    image: *airflow_image
+    build: .
     container_name: airflow-feat-scheduler
     restart: unless-stopped
     env_file:
@@ -130,9 +131,8 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=user
-      - MINIO_ROOT_PASSWORD=password
+    env_file:
+      - ./minio/.env
     command: server --console-address ":9001" /data
     volumes:
       - locals3-data:/minio/data
@@ -144,13 +144,15 @@ services:
 
   locals3_init:
     build: ./minio/
+    env_file:
+      - ./minio/.env
     environment:
-      - PASSWORD=password
+      - USER=user
       - COPY_DIR=false
       - INPUT_BUCKETS=datasets
     depends_on:
       - locals3
-    entrypoint: /bin/sh entrypoint.sh
+    entrypoint: /bin/sh ./entrypoint.sh
 
 volumes:
   logs:

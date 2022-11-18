@@ -22,6 +22,16 @@ Here is the list of demonstrated new features in Airflow 2.3:
 Here is the list of demonstrated new features in Airflow 2.4:
 1. [ ] Data-aware (data-driven) scheduling
    1. [ ] Consolidated schedule parameter
+   2. [x] Auto-register DAG used in context manager (used in all examples)
+
+# Before running the examples
+A one time start of `prep.sh` is required to copy the 
+`.env.backup`files to `.env`.
+
+You can run it with:
+```shell
+make prep
+```
 
 # Running the examples
 
