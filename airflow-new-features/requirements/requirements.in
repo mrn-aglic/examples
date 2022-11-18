@@ -2,3 +2,5 @@ asyncio
 aiohttp
 setuptools
 wheel
+minio
+pandas

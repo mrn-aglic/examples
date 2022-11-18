@@ -36,13 +36,13 @@ else
 
     echo $file and $bucket
 
-    /usr/bin/mc mb "$bucket"
+    /usr/bin/mc mb "locals3/$bucket"
 
     echo $file
     if [ ! -z "${file}" ]
     then
       echo "ENTERED IF"
-      /usr/bin/mc cp "/data/$file" "$bucket"
+      /usr/bin/mc cp "/data/$file" "locals3/$bucket"
     fi
   done;
 fi
