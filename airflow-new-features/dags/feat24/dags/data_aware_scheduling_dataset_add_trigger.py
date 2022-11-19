@@ -12,10 +12,13 @@ import requests
 from airflow import DAG
 from airflow.datasets import Dataset
 from airflow.hooks.base import BaseHook
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from minio import Minio
 
-wildfires_dataset = Dataset("s3://locals3/datasets/test.csv")
+BATCH_SIZE = 1000
+
+wildfires_dataset = Dataset("s3://locals3/datasets/")
 
 
 def _transfer_from_api_to_s3(s3_conn_id, api_conn, endpoint, args, bucket, key):
@@ -60,7 +63,7 @@ def _transfer_from_api_to_s3(s3_conn_id, api_conn, endpoint, args, bucket, key):
             bucket_name=bucket, object_name=key, file_path=file.name
         )
 
-        logging.info(result.last_modified)
+        logging.info(result)
 
 
 def _list_objects(s3_conn_id, bucket):
@@ -81,33 +84,43 @@ def _list_objects(s3_conn_id, bucket):
 
 
 with DAG(
-    dag_id="data_aware_producer_simple",
+    dag_id="data_aware_producer_dataset_with_trigger",
     description="This dag demonstrates a simple dataset producer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule_interval="0 * * * *",
-    tags=["airflow2.4", "dataset", "dataset-producer"],
+    tags=["airflow2.4", "dataset", "dataset-producer", "empty-operator"],
 ):
-    transfer_from_api_to_s3 = PythonOperator(
+
+    def _get_data_range():
+        return [
+            {
+                "s3_conn_id": "locals3",
+                "api_conn": "wildfires_api",
+                "bucket": "datasets",
+                "key": f"test_{i}.csv",
+                "args": {"start": i * BATCH_SIZE, "limit": BATCH_SIZE},
+                "endpoint": "api/get",
+            }
+            for i in range(5)
+        ]
+
+    transfer_from_api_to_s3 = PythonOperator.partial(
         task_id="transfer_api_to_s3",
         python_callable=_transfer_from_api_to_s3,
-        op_kwargs={
-            "s3_conn_id": "locals3",
-            "api_conn": "wildfires_api",
-            "args": {"limit": 1000},
-            "bucket": "datasets",
-            "endpoint": "api/sample",
-            "key": "test.csv",
-        },
-        outlets=[wildfires_dataset],
-    )
+    ).expand(op_kwargs=_get_data_range())
+
+    trigger = EmptyOperator(task_id="triggerer", outlets=[wildfires_dataset])
+
+    transfer_from_api_to_s3 >> trigger
 
 
 with DAG(
-    dag_id="data_aware_consumer_simple",
+    dag_id="data_aware_consumer_dataset_with_trigger",
     description="This dag demonstrates a simple dataset consumer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule=[wildfires_dataset],
-    tags=["airflow2.4", "dataset", "dataset-consumer"],
+    tags=["airflow2.4", "dataset", "dataset-consumer", "empty-operator"],
+    catchup=False,
 ):
     list_objects = PythonOperator(
         task_id="list_objects",
