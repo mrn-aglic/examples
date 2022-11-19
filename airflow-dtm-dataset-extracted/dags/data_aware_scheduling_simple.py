@@ -84,8 +84,8 @@ with DAG(
     dag_id="data_aware_producer_simple",
     description="This dag demonstrates a simple dataset producer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
-    schedule_interval="0 * * * *",
-    tags=["airflow2.4", "dataset", "dataset-producer"],
+    schedule="0 * * * *",
+    tags=["dataset-producer", "simple"],
 ):
     transfer_from_api_to_s3 = PythonOperator(
         task_id="transfer_api_to_s3",
@@ -107,7 +107,7 @@ with DAG(
     description="This dag demonstrates a simple dataset consumer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule=[wildfires_dataset],
-    tags=["airflow2.4", "dataset", "dataset-consumer"],
+    tags=["dataset-consumer", "simple"],
 ):
     list_objects = PythonOperator(
         task_id="list_objects",

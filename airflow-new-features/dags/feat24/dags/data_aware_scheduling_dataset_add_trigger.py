@@ -87,7 +87,7 @@ with DAG(
     dag_id="data_aware_producer_dataset_with_trigger",
     description="This dag demonstrates a simple dataset producer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
-    schedule_interval="0 * * * *",
+    schedule="0 * * * *",
     tags=["airflow2.4", "dataset", "dataset-producer", "empty-operator"],
 ):
 

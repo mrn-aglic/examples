@@ -5,7 +5,7 @@ This subdirectory covers some features introduced in Airflow
 
 These include:
 - [x] Data-aware (data-driven) scheduling
-  - [ ] Consolidated schedule parameter
+  - [x] Consolidated schedule parameter
   - [x] Auto-register DAG used in context manager
 
 # Data-aware (data-driven scheduling)
@@ -194,6 +194,14 @@ the consumer to run;
 Here we mention a few nice minor features.
 
 ## Consolidated schedule parameter
+Airflow has a number of parameters to schedule DAG runs.
+These include `schedule_interval`, `timetable` and 
+`schedule`. The parameters `schedule_interval` and `timetable`
+are being deprecated in favour of the `schedule` 
+parameter [4].
+
+The examples contain schedules set to cron expressions
+and datasets.
 
 ## Auto-register DAG used in context manager
 Since version 2 (I think) of Airflow, it is possible
@@ -216,3 +224,4 @@ All the examples use this new feature.
 1. https://airflow.apache.org/docs/apache-airflow/stable/concepts/datasets.html
 2. https://airflow.apache.org/blog/airflow-2.4.0/
 3. https://airflow.apache.org/blog/airflow-2.4.0/#auto-register-dags-used-in-a-context-manager-no-more-as-dag-needed
+4. https://www.astronomer.io/blog/apache-airflow-2-4-everything-you-need-to-know/
