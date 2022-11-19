@@ -41,6 +41,19 @@ async def get_data(start: int, limit: int):
     return Response(result.to_json(orient="records"), media_type="application/json")
 
 
+@app.get("/api/sample")
+async def get_sample(limit: int, seed: int = None):
+    df = pd.read_csv(data_source)
+
+    if seed:
+        logger.info("Using seed: %d", seed)
+        result = df.sample(n=limit, random_state=seed)
+    else:
+        result = df.sample(n=limit)
+
+    return Response(result.to_json(orient="records"), media_type="application/json")
+
+
 @app.get("/api/get_with_delay")
 async def get_data_with_delay(start: int, limit: int, delay: int):
 
