@@ -67,7 +67,7 @@ Another way to say this is that we don't want to
 schedule any dag runs between 12 PM and 17 PM. But we
 can **execute** one at 13 PM.
 
-###Note 
+### Note
 When testing make sure that the webserver UI is set to
 display time in UTC to make it easier to validate the
 correctness of the code.
