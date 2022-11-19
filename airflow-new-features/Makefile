@@ -17,4 +17,7 @@ run:
 	make down && make cp-airflow24-ignores && docker-compose up
 
 run-2.2:
-	make down && docker-compose -f docker-compose.feat22.yml up
+	make down && make cp-airflow-22-ignores && docker-compose -f docker-compose.feat22.yml up
+
+run-2.4:
+	make down && make cp-airflow-24-ignores && docker-compose -f docker-compose.feat24.yml up
