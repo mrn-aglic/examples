@@ -87,8 +87,8 @@ with DAG(
     dag_id="data_aware_producer_dataset_with_trigger",
     description="This dag demonstrates a simple dataset producer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
-    schedule_interval="0 * * * *",
-    tags=["airflow2.4", "dataset", "dataset-producer", "empty-operator"],
+    schedule="0 * * * *",
+    tags=["dataset-producer", "empty-operator"],
 ):
 
     def _get_data_range():
@@ -119,7 +119,7 @@ with DAG(
     description="This dag demonstrates a simple dataset consumer",
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule=[wildfires_dataset],
-    tags=["airflow2.4", "dataset", "dataset-consumer", "empty-operator"],
+    tags=["dataset-consumer", "empty-operator"],
     catchup=False,
 ):
     list_objects = PythonOperator(

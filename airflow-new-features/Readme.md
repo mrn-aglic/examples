@@ -20,8 +20,8 @@ Here is the list of demonstrated new features in Airflow 2.3:
 5. [ ] Store connections from JSON format
 
 Here is the list of demonstrated new features in Airflow 2.4:
-1. [ ] Data-aware (data-driven) scheduling
-   1. [ ] Consolidated schedule parameter
+1. [x] Data-aware (data-driven) scheduling
+   1. [x] Consolidated schedule parameter
    2. [x] Auto-register DAG used in context manager (used in all examples)
 
 # Before running the examples
