@@ -1,0 +1,139 @@
+version: '3.8'
+
+
+# ====================================== AIRFLOW environment VARIABLES =======================================
+x-environment: &airflow_environment
+  - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+  - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=False
+  - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
+  - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
+  - AIRFLOW_CONN_WILDFIRES_API=http://wildfires-api:8000
+
+x-depends_on: &airflow-depends-on
+  postgres:
+    condition: service_healthy
+
+x-airflow-image: &airflow_image apache/airflow:2.4.2-python3.10
+# ===========
+
+
+services:
+  postgres:
+    container_name: airflow-data-aware-postgres
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 5s
+      retries: 5
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  initdb_adduser:
+    image: *airflow_image
+    depends_on:
+      <<: *airflow-depends-on
+    environment: *airflow_environment
+    entrypoint: /bin/bash
+    command: -c 'airflow db init && airflow users create --username airflow --password airflow --firstname Marin --lastname Marin --role Admin --email admin@example.org'
+
+  webserver:
+    image: *airflow_image
+    container_name: airflow-data-aware-webserver
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    environment: *airflow_environment
+    command: webserver
+    depends_on:
+      <<: *airflow-depends-on
+      initdb_adduser:
+        condition: service_completed_successfully
+
+  scheduler:
+    build: .
+    container_name: airflow-data-aware-scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"' ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      <<: *airflow-depends-on
+      initdb_adduser:
+        condition: service_completed_successfully
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - logs:/opt/airflow/logs
+    environment: *airflow_environment
+    command: scheduler
+
+
+  wildfires-api:
+    build:
+      context: ./
+      dockerfile: wildfires-api/.
+    container_name: airflow-data-aware-api
+    entrypoint: [ "./entrypoint.sh", "--reload" ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://wildfires-api:8000/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./wildfires-api/app:/wildfires-api/app
+    ports:
+      - "8000:8000"
+
+
+  locals3:
+    image: minio/minio
+    container_name: airflow-data-aware-s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - ./minio/.env
+    command: server --console-address ":9001" /data
+    volumes:
+      - locals3-data:/minio/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  locals3_init:
+    build: ./minio/
+    env_file:
+      - ./minio/.env
+    environment:
+      - USER=user
+      - COPY_DIR=false
+      - INPUT_BUCKETS=datasets
+    depends_on:
+      - locals3
+    entrypoint: /bin/sh ./entrypoint.sh
+
+volumes:
+  logs:
+  postgres-db:
+  locals3-data:
