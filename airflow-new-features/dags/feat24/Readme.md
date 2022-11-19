@@ -8,7 +8,10 @@ These include:
   - [x] Consolidated schedule parameter
   - [x] Auto-register DAG used in context manager
 
-# Data-aware (data-driven scheduling)
+I've also wrote a short story on Medium related to
+data-aware scheduling. You can find it [here](https://medium.com/@MarinAgli1/a-look-into-airflow-data-aware-scheduling-and-dynamic-task-mapping-8c548d4ad79).
+
+# Data-aware (data-driven) scheduling
 
 Airflow version 2.4 introduces the ability to schedule
 DAGs based on a task updating a dataset. The current
