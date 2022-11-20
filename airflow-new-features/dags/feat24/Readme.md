@@ -5,6 +5,7 @@ This subdirectory covers some features introduced in Airflow
 
 These include:
 - [x] Data-aware (data-driven) scheduling
+- [X] Various minor features:
   - [x] Consolidated schedule parameter
   - [x] Auto-register DAG used in context manager
 
