@@ -1,28 +1,35 @@
-images:
-  airflow:
-    repository: apache/airflow:2.4.2 #-python3.10
-    tag: 2.4.2-python3.10
-    pullPolicy: IfNotPresent
-
-
-executor: LocalKubernetesExecutor
+executor: "LocalKubernetesExecutor"
 
 config:
+  logging:
+    remote_logging: 'True'
+    remote_base_log_folder: 's3://airflow-logs'
+    remote_log_conn_id: 'minio'
   webserver:
     expose_config: 'True'
 
+secret:
+  - envName: "AIRFLOW_CONN_MINIO"
+    secretName: "minio"
+    secretKey: "conn"
 
-#kubectl create secret generic airflow-ch18-env --from-env-file .env -n airflow
-#  - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=False
-  - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
-  - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
-  - AIRFLOW__KUBERNETES__IN_CLUSTER=False
-  - AIRFLOW_CONN_WILDFIRES_API=http://wildfires-api:8000
 
-logs:
-  persistence:
-    enabled: true
-    size: 2Gi
+#postgresql:
+#  enabled: true
+#  postgresqlPassword: airflow
+#  postgresqlUsername: airflow
+#
+#data:
+##  metadataSecretName: databaseconn
+#  # Otherwise pass connection values in
+#  metadataConnection:
+#    user: airflow
+#    pass: airflow
+#    protocol: postgresql
+#    host: ~
+#    port: 5432
+#    db: airflow
+#    sslmode: disable
 
 webserver:
   # Create initial user.
@@ -43,41 +50,15 @@ statsd:
   enabled: false
 
 cleanup:
-  enabled: false
-
-migrateDatabaseJob:
-  enabled: false
+  enabled: true
 
 
 dags:
+  persistence:
+    enabled: false
   gitSync:
     enabled: true
     repo: https://github.com/mrn-aglic/examples.git # or replace with your github repo
-    branch: master
+    branch: marin/setup-kubernetes-example
     subPath: "airflow-new-features/dags/feat23/dags"
     sshKeySecret: airflow-git-secret
-
-# I believe that this is not required, hence it is commented out.
-#env:
-#  - name: GOOGLE_APPLICATION_CREDENTIALS
-#    value: "/opt/airflow/secrets/key.json"
-
-#secret:
-#  - envName: RATINGS_BUCKET
-#    secretName: airflow-ch18-env
-#    secretKey: RATINGS_BUCKET
-#  - envName: RESULT_BUCKET
-#    secretName: airflow-ch18-env
-#    secretKey: RESULT_BUCKET
-#  - envName: BIGQUERY_DATASET
-#    secretName: airflow-ch18-env
-#    secretKey: BIGQUERY_DATASET
-#  - envName: GCP_PROJECT
-#    secretName: airflow-ch18-env
-#    secretKey: GCP_PROJECT
-#  - envName: MOVIELENS_USER
-#    secretName: airflow-ch18-env
-#    secretKey: MOVIELENS_USER
-#  - envName: MOVIELENS_PASSWORD
-#    secretName: airflow-ch18-env
-#    secretKey: MOVIELENS_PASSWORD

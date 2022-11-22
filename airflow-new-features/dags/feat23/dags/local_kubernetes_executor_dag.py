@@ -1,43 +1,43 @@
 import logging
-import os
+from datetime import timedelta
 
 import pendulum
 from airflow import DAG
-from airflow.configuration import conf
 from airflow.operators.python import PythonOperator
-from airflow.settings import AIRFLOW_HOME
 from kubernetes.client import models as k8s
 
 logger = logging.getLogger(__name__)
 
-# From section (1st param) in config get key (2nd param)
-worker_container_repository = conf.get(
-    "kubernetes_executor", "worker_container_repository"
-)
-
-worker_container_tag = conf.get("kubernetes_executor", "worker_container_tag")
-
 start_task_executor_config = {
-    # "pod_template_file": os.path.join(
-    #     AIRFLOW_HOME, "pod_templates/basic_template.yaml"
-    # ),
     "pod_override": k8s.V1Pod(
         metadata=k8s.V1ObjectMeta(annotations={"test": "annotation"})
     ),
 }
 
 
-def _print_f(**context):
-    print(context)
+def _print_f(queue, **context):
+    logger.info("Executor running: %s", queue)
+    logger.info(context)
 
 
 with DAG(
     dag_id="local_kubernetes_executor",
-    start_date=pendulum.now().subtract(int(os.environ["HOURS_AGO"])),
-    schedule=None,
+    start_date=pendulum.now().subtract(minutes=15),
+    schedule=timedelta(minutes=5),
     tags=["airflow2.3", "executor"],
 ):
-    print_op = PythonOperator(
-        task_id="print_task",
+    print_op_kubernetes = PythonOperator(
+        task_id="print_task_with_kubernetes",
         python_callable=_print_f,
+        op_kwargs={"queue": "kubernetes"},
+        executor_config=start_task_executor_config,
+        queue="kubernetes",
     )
+
+    print_op_local = PythonOperator(
+        task_id="print_task_with_local",
+        python_callable=_print_f,
+        op_kwargs={"queue": "local"},
+    )
+
+    print_op_local >> print_op_kubernetes

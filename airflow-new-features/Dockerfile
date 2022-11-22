@@ -9,8 +9,6 @@ RUN pip install -r ./requirements/requirements.txt
 # Install for LocalKubernetess Executor example for Airflow 2.3
 RUN pip install apache-airflow[cncf.kubernetes]
 
-COPY resources/kube_config ~/.kube/config
-
 # Required to install package for an Airflow 2.2 example
 RUN mkdir -p ./package_folder/src/feat22/
 
