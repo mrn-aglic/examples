@@ -18,9 +18,9 @@ worker_container_repository = conf.get(
 worker_container_tag = conf.get("kubernetes_executor", "worker_container_tag")
 
 start_task_executor_config = {
-    "pod_template_file": os.path.join(
-        AIRFLOW_HOME, "pod_templates/basic_template.yaml"
-    ),
+    # "pod_template_file": os.path.join(
+    #     AIRFLOW_HOME, "pod_templates/basic_template.yaml"
+    # ),
     "pod_override": k8s.V1Pod(
         metadata=k8s.V1ObjectMeta(annotations={"test": "annotation"})
     ),
