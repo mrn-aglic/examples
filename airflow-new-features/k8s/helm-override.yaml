@@ -59,6 +59,6 @@ dags:
   gitSync:
     enabled: true
     repo: https://github.com/mrn-aglic/examples.git # or replace with your github repo
-    branch: marin/setup-kubernetes-example
+    branch: main
     subPath: "airflow-new-features/dags/feat23/dags"
     sshKeySecret: airflow-git-secret
