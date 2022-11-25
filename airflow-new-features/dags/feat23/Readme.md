@@ -8,11 +8,13 @@ These include:
 - [x] Tree view replaced by Grid view (demonstrated by default)
 - [x] LocalKubernetesExecutor
 - [ ] Reuse of decorated tasks
+- [ ] Various Minor features:
+  - [ ] Store connections from JSON format
 
 The DAG local_kubernetes_executor is excluded from
 running with the other examples since it requires
 a local kubernetes cluster. To run the example, read
-the section LocalKubernetesExecutor and setup a locak
+the section LocalKubernetesExecutor and set up a local
 kubernetes cluster. 
 
 # LocalKubernetesExecutor
@@ -258,6 +260,8 @@ So delete those separately:
 ```shell
 kubectl delete secret --all
 kubectl delete serviceaccount --all
+
+kubectl delete namespace airflow
 ```
 
 Delete the cluster:
