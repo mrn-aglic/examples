@@ -6,10 +6,25 @@ This subdirectory covers some features introduced in Airflow
 These include:
 - [ ] Dynamic Task Mapping
 - [x] Tree view replaced by Grid view (demonstrated by default)
-- [ ] LocalKubernetesExecutor
+- [x] LocalKubernetesExecutor
 - [ ] Reuse of decorated tasks
 
+The DAG local_kubernetes_executor is excluded from
+running with the other examples since it requires
+a local kubernetes cluster. To run the example, read
+the section LocalKubernetesExecutor and setup a locak
+kubernetes cluster. 
+
 # LocalKubernetesExecutor
+
+The `LocalKubernetesExecutor` allows the user to 
+simultaneously run both the local and kubernetes executors.
+Airflow will instantiate both executors and the task
+will run on one of them. The executor is chosen based on 
+the task's queue. 
+
+However, to run the kubernetes executor, we need to setup
+a local kubernetes cluster.
 
 ## Running the example
 First make sure that you kave kubectl, helm and kind 
@@ -221,9 +236,48 @@ And the logs are inside:
 If you log in to minio s3 storage (presumably running
 on `localhost:9000`), you should see the log files.
 
+## Cleaning up
 
+After you're finished with the example, you might
+want to clean up the created resources. First, stop
+any port-forwarding that you have running.
+
+First, delete the helm chart installed:
+```shell
+helm delete airflow
+```
+
+This will delete most of the resources
+
+Delete the rest with kubectl:
+```shell
+kubectl delete all --all
+```
+In my case, this leaves the service account and secrets.
+So delete those separately:
+```shell
+kubectl delete secret --all
+kubectl delete serviceaccount --all
+```
+
+Delete the cluster:
+```shell
+kind delete cluster -n airflow
+```
+
+## Why use remote logging? 
+Well, to use kubernetes PV and PVC, you need to have
+a PVC with the ReadWriteMany access mode. As far as I could
+tell, the class storage that supports it, isn't 
+pre-installed with kubectl. It seeemed to be more work
+to setup such a PVC than to use remote logging. 
+You can read more [here](https://airflow.apache.org/docs/helm-chart/1.7.0/manage-logs.html). 
+
+If your PVC doesn't support this access mode, some pods 
+will be in the Pending state indefinitely. 
 
 # References
 1. https://airflow.apache.org/docs/helm-chart/stable/quick-start.html
 2. https://www.oak-tree.tech/blog/airflow-remote-logging-s3
-3. 
+3. https://airflow.apache.org/docs/apache-airflow/2.3.0/executor/local_kubernetes.html
+4. https://airflow.apache.org/docs/helm-chart/1.7.0/manage-logs.html
