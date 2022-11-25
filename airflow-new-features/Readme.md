@@ -15,7 +15,7 @@ Here is the list of demonstrated new features in Airflow 2.2:
 Here is the list of demonstrated new features in Airflow 2.3:
 1. [ ] Dynamic Task Mapping
 2. [x] Tree view replaced by Grid view (demonstrated by default)
-3. [ ] LocalKubernetesExecutor
+3. [x] LocalKubernetesExecutor
 4. [ ] Reuse of decorated tasks
 5. [ ] Various Minor features:
    1. [ ] Store connections from JSON format
