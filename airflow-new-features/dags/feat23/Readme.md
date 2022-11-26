@@ -69,19 +69,15 @@ Now, since the function of the next operator has several
 arguments, we need to map the dictionaries with these
 values. Which we can do like this:
 ```python
-def prep_args(batches):
-    return [
-        {
-            "conn_id": "wildfires_api",
-            "s3_conn_id": "locals3",
-            "endpoint": "api/get",
-            "timestamp": "{{ ts_nodash }}",
-            **b,
-        }
-        for b in batches
-    ]
+def prep_arg(batch):
+    return {
+        "conn_id": "wildfires_api",
+        "s3_conn_id": "locals3",
+        "endpoint": ENDPOINT,
+        **batch,
+    }
 
-op_kwargs=create_batches.output.map(prep_args)
+op_kwargs=create_batches.output.map(prep_arg)
 ```
 
 Things about map to note (taken directly from the docs):
@@ -99,9 +95,9 @@ for example, you should raise `AirflowSkipException`.
 Putting it into an operator: 
 ```python
 transfer_to_s3 = PythonOperator.partial(
-        task_id="transfer_to_s3",
-        python_callable=_transfer_to_s3,
-    ).expand(op_kwargs=create_batches.output.map(prep_args))
+    task_id="transfer_to_s3",
+    python_callable=_transfer_to_s3,
+).expand(op_kwargs=create_batches.output.map(prep_arg))
 ```
 
 The `partial` method crates an `OperatorPartial`. 
@@ -134,12 +130,99 @@ In our example, that is the `transfer_to_s3` operator.
 
 When you run the DAG, you should see this in the Grid
 view:
+![task_mapping_grid](../../resources/task_mapping_grid.png)
 
+You can also select the operator to view the mapped 
+instances:
+![task_mapping_map_instances](../../resources/task_mapping_grid_op.png)
 
-and you should see the following:
+You can go to `localhost:9000` and login with the
+minio credentials:
+- user: user
+- password: password
 
+In Minio you should see the data in the bucket. Something
+similar to this:
+![task_mapping_bucket](../../resources/task_mapping_bucket_data.png)
+
+In Airflow's graph view, the graph should include a number
+of mapped task instances created:
+![task_mapping_after_run](../../resources/task_mapping_after_run.png)
 
 ## Placing limits
+
+The docs specify that you can limit the number of tasks
+that:
+1. the expand function can create, by default 1024 - 
+`max_map_length`. The task will fail if there are more 
+instances returned;
+2. can run in parallel - this prevents a large number
+of tasks from consuming all available runer slots.
+The parameter is `max_active_tis_per_dag` and applies 
+across all DAG runs.
+
+## Templating
+Templating in the mapping function won't work. We
+couldn't have done this to get the timestamp:
+```python
+def prep_arg(batch):
+    return {
+        "conn_id": "wildfires_api",
+        "s3_conn_id": "locals3",
+        "endpoint": ENDPOINT,
+        "timestamp": "{{ ts_nodash }}"
+        **batch,
+    }
+```
+
+Instead, I used the following in the `_transfer_to_s3`
+function to manually render the template:
+```python
+timestamp = context["task"].render_template("{{ ts_nodash }}", context)
+```
+The docs specify that we could: _"If you want to 
+interpolate values either call task.render_template 
+yourself, or use interpolation:"_ . However, I'm not sure
+how to use interpolation in this example. 
+
+## Important note
+I had quite the difficulty producing this example as the
+task instances of the `transfer_to_s3` task kept randomly
+failling with SIGTERM signalls. My first thought was that
+I was running out of RAM. But simply increasing docker 
+RAM resources didn't help. Then I noticed that the scheduler
+was logging that it detected zombie tasks. Zombie tasks
+occur when a task doesn't sent a heartbeat. I'm not
+entirely sure why this happened.
+
+It also seemed that the tasks were failing before the
+response was parsed to JSON. It seemeed like parsing
+the response to JSON took to many resources. 
+
+However, I was able to make things work by using the
+following approach:
+1. increased docker resources: 5 CPU and 9GB RAM
+2. switch to a celery executor with 3 workers
+3. I also had a limit on the number of parallel copies
+of the mapped task set to 4. I did this before increasing
+Docker resources.
+
+Finally, I was able to produce the images I wanted and 
+confirm it was a resources related issue.
+
+If you'd like to test it yourself using Celery,
+use the following command:
+```shell
+make run-2.3-celery
+```
+
+The normal command:
+```shell
+make run-2.3
+```
+
+is configured to use the smaller dataset of 20 000 rows.
+This way, you don't have to increase Docker resources.
 
 ## Further reading
 You can read more about dynamic task mapping:

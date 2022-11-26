@@ -82,7 +82,6 @@ services:
         condition: service_completed_successfully
 
   scheduler:
-#    image: *airflow_image
     build: .
     container_name: airflow-feat-scheduler
     restart: unless-stopped
@@ -101,13 +100,15 @@ services:
       - ./dags:/opt/airflow/dags
       - logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
-    environment: *airflow_environment
+    environment:
+      <<: *airflow_environment
+      BATCH_SIZE: 50000
+      ENDPOINT: api/get
+      COUNT_ENDPOINT: count
     command: scheduler
 
   worker:
-#    image: *airflow_image
     build: .
-#    container_name: airflow-feat-celery-worker
     command: celery worker
     healthcheck:
       test:
@@ -120,6 +121,9 @@ services:
       - .env
     environment:
       <<: *airflow_environment
+      BATCH_SIZE: 50000
+      ENDPOINT: api/get
+      COUNT_ENDPOINT: count
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
@@ -132,24 +136,6 @@ services:
       initdb_adduser:
         condition: service_completed_successfully
 
-#  triggerer:
-##    image: *airflow_image
-#    build: .
-#    container_name: airflow-feat-triggerer
-#    command: triggerer
-#    environment: *airflow_environment
-#    healthcheck:
-#      test: [ "CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"' ]
-#      interval: 10s
-#      timeout: 10s
-#      retries: 5
-#    restart: always
-#    volumes:
-#      - ./dags:/opt/airflow/dags
-#    depends_on:
-#      <<: *airflow-depends-on
-#      initdb_adduser:
-#        condition: service_completed_successfully
 
   wildfires-api:
     build:
