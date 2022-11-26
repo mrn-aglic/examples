@@ -31,6 +31,12 @@ data_source = "/data/wildfires.csv"
 #     return FireRepository(db)
 
 
+@app.get("/api/count")
+async def get_count():
+    df = pd.read_csv(data_source)
+    return df.shape[0]
+
+
 @app.get("/api/get")
 async def get_data(start: int, limit: int):
 

@@ -15,7 +15,142 @@ The DAG local_kubernetes_executor is excluded from
 running with the other examples since it requires
 a local kubernetes cluster. To run the example, read
 the section LocalKubernetesExecutor and set up a local
-kubernetes cluster. 
+kubernetes cluster with remote logging. 
+
+# Dynamic task mapping
+Dynamic task mapping basically refers to creating a 
+number of task instances at runtime depending on the 
+arguments that you pass to the expand method. 
+
+In this example, we want to transfer the data from an
+API endpoint to s3 storage. We're going to transfer
+the data in batches. The number of batches is unknown
+until runtime, so our DAG will define 3 operators.
+It could have been accomplished with 2, but I want to
+demonstrate the `BashOperator` also.
+So, our operators will be:
+1. BashOperator - get the number of rows from the API
+2. PythonOperator - determine the batches (starts)
+3. PythonOperator - transfer the data from the API 
+to S3 storage.
+
+The connection ID is defined in the docker compose
+file as a connection. 
+
+The BashOperator will push the result of the curl
+command to XCOM, so we can pull the number of rows
+in the next task. 
+```python
+get_rows_count = BashOperator(
+      task_id="get_rows_count",
+      bash_command="curl http://wildfires-api:8000/api/count",
+      do_xcom_push=True,
+  )
+```
+We define the next operator to create a list of batch
+settings:
+```python
+def _create_batches(count):
+    count = int(count)
+
+    num_batches = math.ceil(count / BATCH_SIZE)
+    return [{"start": i * BATCH_SIZE} for i in range(num_batches)]
+
+create_batches = PythonOperator(
+    task_id="create_batches",
+    python_callable=_create_batches,
+    op_kwargs={"count": "{{ ti.xcom_pull(task_ids='get_rows_count') }}"},
+)
+```
+
+The operator returns a list of dictionaries. Each 
+dictionary contains the `start` value for the batch. 
+Now, since the function of the next operator has several
+arguments, we need to map the dictionaries with these
+values. Which we can do like this:
+```python
+def prep_args(batches):
+    return [
+        {
+            "conn_id": "wildfires_api",
+            "s3_conn_id": "locals3",
+            "endpoint": "api/get",
+            "timestamp": "{{ ts_nodash }}",
+            **b,
+        }
+        for b in batches
+    ]
+
+op_kwargs=create_batches.output.map(prep_args)
+```
+
+Things about map to note (taken directly from the docs):
+1. the transformation is as a part of the 
+“pre-processing” of the downstream task 
+(transfer_to_s3 in this case), not a standalone task 
+in the DAG.
+2. the map function is called exactly once for each
+element of the list.
+3. Since the callable is executed as a part of the 
+downstream task, you can use any existing techniques to 
+write the task function. To mark a component as skipped, 
+for example, you should raise `AirflowSkipException`.
+
+Putting it into an operator: 
+```python
+transfer_to_s3 = PythonOperator.partial(
+        task_id="transfer_to_s3",
+        python_callable=_transfer_to_s3,
+    ).expand(op_kwargs=create_batches.output.map(prep_args))
+```
+
+The `partial` method crates an `OperatorPartial`. 
+As the docs say: “_it only exists at DAG-parsing time; 
+the only intended usage is for the user to call expand 
+on it to create a MappedOperator_”.
+
+Behind the scenes, the output property creates an 
+`XComArgs` instance. This instance represents a XCom 
+push from the previous operator. It is used to resolve 
+the value that should be pulled from XCom. 
+
+Using the `expand` function we tell Airflow that we
+want to map the operator over the list that we pass
+to it. Airflow will create an instance of a task
+for each value passed to the expand function. 
+
+And define the pipeline:
+`get_rows_count >> create_batches >> transfer_to_s3`.
+In some cases, Airflow can use infer the relationship
+between the operators. So, you should check carefully
+if this is the case for you.
+
+When you first look at a DAG (without running it), you 
+can see that there are array brackets next to the name
+of the operator that is going to be dynamically mapped. 
+In our example, that is the `transfer_to_s3` operator.
+
+![task_mapping_1](../../resources/task_mapping_1.png)
+
+When you run the DAG, you should see this in the Grid
+view:
+
+
+and you should see the following:
+
+
+## Placing limits
+
+## Further reading
+You can read more about dynamic task mapping:
+1. From the docs:
+[here](https://airflow.apache.org/docs/apache-airflow/stable/concepts/dynamic-task-mapping.html).
+2. A story I've written to compare the classical approach
+to writing dynamic task mapping DAGs with Taskflow API:
+[here](https://medium.com/@MarinAgli1/using-airflow-2-4-task-mapping-fe2116383999).
+3. If you're interested in how dynamic task mapping works
+with data-aware scheduling: [here](https://medium.com/@MarinAgli1/a-look-into-airflow-data-aware-scheduling-and-dynamic-task-mapping-8c548d4ad79).
+
 
 # LocalKubernetesExecutor
 
@@ -285,3 +420,6 @@ will be in the Pending state indefinitely.
 2. https://www.oak-tree.tech/blog/airflow-remote-logging-s3
 3. https://airflow.apache.org/docs/apache-airflow/2.3.0/executor/local_kubernetes.html
 4. https://airflow.apache.org/docs/helm-chart/1.7.0/manage-logs.html
+5. https://airflow.apache.org/docs/apache-airflow/stable/_api/airflow/models/mappedoperator/index.html#airflow.models.mappedoperator.OperatorPartial
+6. https://airflow.apache.org/docs/apache-airflow/stable/concepts/dynamic-task-mapping.html
+7. https://medium.com/@MarinAgli1/using-airflow-2-4-task-mapping-fe2116383999
