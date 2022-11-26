@@ -5,14 +5,16 @@ from tempfile import NamedTemporaryFile
 
 import pandas as pd
 import pendulum
-import requests
 from airflow import DAG
 from airflow.hooks.base import BaseHook
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from airflow.providers.http.hooks.http import HttpHook
 from minio import Minio
 
-BATCH_SIZE = 50000
+BATCH_SIZE = int(os.environ["BATCH_SIZE"])
+ENDPOINT = os.environ["ENDPOINT"]
+COUNT_ENDPOINT = os.environ["COUNT_ENDPOINT"]
 BUCKET = "api-data"
 EXAMPLE = "simple"
 
@@ -25,19 +27,19 @@ def _create_batches(count):
 
 
 # pylint:disable=too-many-locals
-def _transfer_to_s3(conn_id, s3_conn_id, endpoint, batch_settings, timestamp):
+def _transfer_to_s3(conn_id, s3_conn_id, endpoint, start, **context):
+    timestamp = context["task"].render_template("{{ ts_nodash }}", context)
+
     api_conn = BaseHook.get_connection(conn_id)
-    start = batch_settings["start"]
 
-    url = f"{api_conn.conn_type}://{api_conn.host}:{api_conn.port}/{endpoint}?start={start}&limit={BATCH_SIZE}"
+    url = f"{api_conn.conn_type}://{api_conn.host}:{api_conn.port}"
 
-    response = requests.get(url)
+    logging.info("Sending HTTP GET request: %s", url)
 
-    try:
-        response.raise_for_status()
-    except Exception as e:
-        raise e
+    http_hook = HttpHook(http_conn_id=conn_id, method="GET")
+    response = http_hook.run(endpoint, data={"start": start, "limit": BATCH_SIZE})
 
+    logging.info("Got response from API server")
     data = response.json()
     df = pd.DataFrame.from_records(data)
 
@@ -75,7 +77,7 @@ with DAG(
 ):
     get_rows_count = BashOperator(
         task_id="get_rows_count",
-        bash_command="curl http://wildfires-api:8000/api/count",
+        bash_command=f"curl http://wildfires-api:8000/api/{COUNT_ENDPOINT}",
         do_xcom_push=True,
     )
 
@@ -85,21 +87,18 @@ with DAG(
         op_kwargs={"count": "{{ ti.xcom_pull(task_ids='get_rows_count') }}"},
     )
 
-    def prep_args(batches):
-        return [
-            {
-                "conn_id": "wildfires_api",
-                "s3_conn_id": "locals3",
-                "endpoint": "api/get",
-                "timestamp": "{{ ts_nodash }}",
-                **b,
-            }
-            for b in batches
-        ]
+    def prep_arg(batch):
+        return {
+            "conn_id": "wildfires_api",
+            "s3_conn_id": "locals3",
+            "endpoint": ENDPOINT,
+            **batch,
+        }
 
     transfer_to_s3 = PythonOperator.partial(
         task_id="transfer_to_s3",
         python_callable=_transfer_to_s3,
-    ).expand(op_kwargs=create_batches.output.map(prep_args))
+        max_active_tis_per_dag=4,
+    ).expand(op_kwargs=create_batches.output.map(prep_arg))
 
-    get_rows_count >> create_batches >> transfer_to_s3
+    get_rows_count >> create_batches

@@ -5,6 +5,7 @@ from http.client import OK
 
 import pandas as pd
 from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -15,6 +16,9 @@ logger.info("Logger setup")
 app = FastAPI(title="Wildfires report")
 
 data_source = "/data/wildfires.csv"
+
+df = pd.read_csv(data_source)
+df_simple = pd.read_csv("/data/wildfires_simple.csv")
 
 # sql_connection = os.environ["SQL_ALCHEMY_CONN"]
 
@@ -39,37 +43,32 @@ async def get_count():
 
 @app.get("/api/get")
 async def get_data(start: int, limit: int):
-
-    df = pd.read_csv(data_source)
-
     result = df.iloc[start : start + limit]
 
-    return Response(result.to_json(orient="records"), media_type="application/json")
+    data = result.to_json(orient="records")
+    return Response(content=data, media_type="application/json")
 
 
 @app.get("/api/sample")
 async def get_sample(limit: int, seed: int = None):
-    df = pd.read_csv(data_source)
-
     if seed:
         logger.info("Using seed: %d", seed)
         result = df.sample(n=limit, random_state=seed)
     else:
         result = df.sample(n=limit)
 
-    return Response(result.to_json(orient="records"), media_type="application/json")
+    data = result.to_json(orient="records")
+    return JSONResponse(content=data)
 
 
 @app.get("/api/get_with_delay")
 async def get_data_with_delay(start: int, limit: int, delay: int):
-
-    df = pd.read_csv(data_source)
-
     result = df.iloc[start : start + limit]
 
     await asyncio.sleep(delay)
 
-    return Response(result.to_json(orient="records"), media_type="application/json")
+    data = result.to_json(orient="records")
+    return JSONResponse(content=data)
 
 
 @app.get("/")
