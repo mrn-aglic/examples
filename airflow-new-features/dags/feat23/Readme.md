@@ -236,7 +236,7 @@ make run-2.3
 is configured to use the smaller dataset of 20 000 rows.
 This way, you don't have to increase Docker resources.
 
-## Changing the limit without redeploy
+## Changing the limit
 Ok, for the smaller dataset, we needed the parallel
 task instance limit to prevent our container from running
 out memory while backfilling (or catchup). But, do we 
@@ -268,9 +268,9 @@ make restart-2.3
 But, return the variable if you plan to re-run the DAG
 after cleaning up the volums/resources.
 
-Unfortunately, there is no way to change the environment
-variable in a docker container while it's running at this
-time.
+**Unfortunately, at this time there is no way to change 
+the environment variable in a docker container while
+it's running.**
 
 You could use:
 ```python
@@ -282,10 +282,12 @@ active_dag_runs = DagRun.active_runs_of_dags(
 basically get the number of active dag runs and determine
 the task number of parallel mapped tasks at runtime.
 **Again, I'm note sure whether you should do this.**
+The rason is I can think of is that on each DAG parse, 
+the parser will need to query the database. 
 
 ## Further reading
 You can read more about dynamic task mapping:
-1. From the docs:
+1. From the docs (**has additional methods**):
 [here](https://airflow.apache.org/docs/apache-airflow/stable/concepts/dynamic-task-mapping.html).
 2. A story I've written to compare the classical approach
 to writing dynamic task mapping DAGs with Taskflow API:
