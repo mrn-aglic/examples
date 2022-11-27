@@ -15,6 +15,12 @@ from minio import Minio
 BATCH_SIZE = int(os.environ["BATCH_SIZE"])
 ENDPOINT = os.environ["ENDPOINT"]
 COUNT_ENDPOINT = os.environ["COUNT_ENDPOINT"]
+
+MAX_ACTIVE_TIS_PER_DAG = os.environ.get("MAX_ACTIVE_TIS_PER_DAG", None)
+
+if MAX_ACTIVE_TIS_PER_DAG is not None:
+    MAX_ACTIVE_TIS_PER_DAG = int(MAX_ACTIVE_TIS_PER_DAG)
+
 BUCKET = "api-data"
 EXAMPLE = "simple"
 
@@ -98,7 +104,9 @@ with DAG(
     transfer_to_s3 = PythonOperator.partial(
         task_id="transfer_to_s3",
         python_callable=_transfer_to_s3,
-        max_active_tis_per_dag=4,
+        # max_active_tis_per_dag=4, # possibly needed if you're going to run the example on the large dataset using CeleryWorker
+        # max_active_tis_per_dag=8, # required for running on the smaller dataset because of backfill.
+        max_active_tis_per_dag=MAX_ACTIVE_TIS_PER_DAG,
     ).expand(op_kwargs=create_batches.output.map(prep_arg))
 
     get_rows_count >> create_batches

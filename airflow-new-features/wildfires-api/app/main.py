@@ -18,7 +18,7 @@ app = FastAPI(title="Wildfires report")
 data_source = "/data/wildfires.csv"
 
 df = pd.read_csv(data_source)
-df_simple = pd.read_csv("/data/wildfires_simple.csv")
+df_small = pd.read_csv("/data/wildfires_small.csv")
 
 # sql_connection = os.environ["SQL_ALCHEMY_CONN"]
 
@@ -37,13 +37,25 @@ df_simple = pd.read_csv("/data/wildfires_simple.csv")
 
 @app.get("/api/count")
 async def get_count():
-    df = pd.read_csv(data_source)
     return df.shape[0]
+
+
+@app.get("/api/count_small")
+async def get_count_small():
+    return df_small.shape[0]
 
 
 @app.get("/api/get")
 async def get_data(start: int, limit: int):
     result = df.iloc[start : start + limit]
+
+    data = result.to_json(orient="records")
+    return Response(content=data, media_type="application/json")
+
+
+@app.get("/api/get_small")
+async def get_data_small(start: int, limit: int):
+    result = df_small.iloc[start : start + limit]
 
     data = result.to_json(orient="records")
     return Response(content=data, media_type="application/json")

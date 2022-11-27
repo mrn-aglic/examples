@@ -30,3 +30,12 @@ run-2.3-celery:
 
 run-2.4:
 	make down && make cp-airflow24-ignores && docker-compose -f docker-compose.feat24.yml up
+
+start-2.3:
+	make cp-airflow23-ignores && docker-compose -f docker-compose.yml up
+
+stop:
+	docker-compose stop
+
+restart-2.3:
+	make stop && make start-2.3
