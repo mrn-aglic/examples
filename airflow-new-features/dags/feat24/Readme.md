@@ -5,6 +5,7 @@ This subdirectory covers some features introduced in Airflow
 
 These include:
 - [x] Data-aware (data-driven) scheduling
+- [ ] CronTriggerTimetable vs CrontDataIntervalTimetable
 - [X] Various minor features:
   - [x] Consolidated schedule parameter
   - [x] Auto-register DAG used in context manager

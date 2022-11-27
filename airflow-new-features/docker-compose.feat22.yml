@@ -47,7 +47,6 @@ services:
 
   webserver:
     image: *airflow_image
-#    build: .
     container_name: airflow-feat-webserver
     env_file:
       - .env

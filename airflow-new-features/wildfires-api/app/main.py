@@ -20,20 +20,6 @@ data_source = "/data/wildfires.csv"
 df = pd.read_csv(data_source)
 df_small = pd.read_csv("/data/wildfires_small.csv")
 
-# sql_connection = os.environ["SQL_ALCHEMY_CONN"]
-
-#
-# async def get_db():
-#     db = db_manager.get_session
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-#
-#
-# async def get_repo(db: Session = Depends(get_db)):
-#     return FireRepository(db)
-
 
 @app.get("/api/count")
 async def get_count():
