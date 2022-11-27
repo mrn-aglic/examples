@@ -18,6 +18,14 @@ the section LocalKubernetesExecutor and set up a local
 kubernetes cluster with remote logging. 
 
 # Dynamic task mapping
+
+**Note**: there is the option to run this example on the
+CeleryWorker with the dataset of 195 000 rows, but
+be sure to read the _Important notes_ section before
+trying. Running with `make run-2.3` will cause the example
+to query the smaller dataset. There are also parallel
+task limits in place for running the example. 
+
 Dynamic task mapping basically refers to creating a 
 number of task instances at runtime depending on the 
 arguments that you pass to the expand method. 
@@ -42,10 +50,10 @@ command to XCOM, so we can pull the number of rows
 in the next task. 
 ```python
 get_rows_count = BashOperator(
-      task_id="get_rows_count",
-      bash_command="curl http://wildfires-api:8000/api/count",
-      do_xcom_push=True,
-  )
+    task_id="get_rows_count",
+    bash_command="curl http://wildfires-api:8000/api/count",
+    do_xcom_push=True,
+)
 ```
 We define the next operator to create a list of batch
 settings:
@@ -97,8 +105,11 @@ Putting it into an operator:
 transfer_to_s3 = PythonOperator.partial(
     task_id="transfer_to_s3",
     python_callable=_transfer_to_s3,
+    ...
 ).expand(op_kwargs=create_batches.output.map(prep_arg))
 ```
+(The actual code source also includes parallel task mapping
+limits)
 
 The `partial` method crates an `OperatorPartial`. 
 As the docs say: “_it only exists at DAG-parsing time; 
@@ -116,10 +127,10 @@ to it. Airflow will create an instance of a task
 for each value passed to the expand function. 
 
 And define the pipeline:
-`get_rows_count >> create_batches >> transfer_to_s3`.
-In some cases, Airflow can use infer the relationship
-between the operators. So, you should check carefully
-if this is the case for you.
+`get_rows_count >> create_batches`. The connection
+between `create_batches` and `transfer_to_s3` will be infered
+from the expand and output methods. You should check
+your pipelines' structure carefully. 
 
 When you first look at a DAG (without running it), you 
 can see that there are array brackets next to the name
@@ -205,7 +216,8 @@ following approach:
 2. switch to a celery executor with 3 workers
 3. I also had a limit on the number of parallel copies
 of the mapped task set to 4. I did this before increasing
-Docker resources.
+Docker resources. This is speciically **important for 
+backfilling and large datasets**. 
 
 Finally, I was able to produce the images I wanted and 
 confirm it was a resources related issue.
@@ -223,6 +235,53 @@ make run-2.3
 
 is configured to use the smaller dataset of 20 000 rows.
 This way, you don't have to increase Docker resources.
+
+## Changing the limit without redeploy
+Ok, for the smaller dataset, we needed the parallel
+task instance limit to prevent our container from running
+out memory while backfilling (or catchup). But, do we 
+really want to have the limit during normal operations?
+
+Rather than setting a hardcoded value like before:
+```python
+transfer_to_s3 = PythonOperator.partial(
+    task_id="transfer_to_s3",
+    python_callable=_transfer_to_s3,
+    max_active_tis_per_dag=4, # possibly needed if you're going to run the example on the large dataset using CeleryWorker
+).expand(op_kwargs=create_batches.output.map(prep_arg))
+```
+We can use an environment variable to set the value. 
+First, check the current value of the variable by running
+the following command:
+```shell
+docker exec airflow-feat-scheduler bash -c 'echo $MAX_ACTIVE_TIS_PER_DAG'
+```
+
+Then, remove/comment the environment variable 
+`MAX_ACTIVE_TIS_PER_DAG` in the docker-compose file and 
+test whether the environment variable is `None`. 
+You can restart the containers using:
+```shell
+make restart-2.3
+```
+
+But, return the variable if you plan to re-run the DAG
+after cleaning up the volums/resources.
+
+Unfortunately, there is no way to change the environment
+variable in a docker container while it's running at this
+time.
+
+You could use:
+```python
+active_dag_runs = DagRun.active_runs_of_dags(
+    "dynamic_task_mapping_example_simple", only_running=True
+).get("dynamic_task_mapping_example_simple")
+```
+**but I'm not sure whether this is recommended.** You could
+basically get the number of active dag runs and determine
+the task number of parallel mapped tasks at runtime.
+**Again, I'm note sure whether you should do this.**
 
 ## Further reading
 You can read more about dynamic task mapping:

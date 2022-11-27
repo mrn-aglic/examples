@@ -9,7 +9,7 @@ FROM setup-requirements as web_api_image
 
 RUN mkdir /data
 COPY ./data/wildfires.csv /data/wildfires.csv
-COPY ./data/wildfires_simple.csv /data/wildfires_simple.csv
+COPY ./data/wildfires_small.csv /data/wildfires_small.csv
 
 COPY ./wildfires-api /wildfires-api
 WORKDIR /wildfires-api/
