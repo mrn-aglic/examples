@@ -4,7 +4,7 @@ This subdirectory covers some features introduced in Airflow
 2.3. 
 
 These include:
-- [ ] Dynamic Task Mapping
+- [x] Dynamic Task Mapping
 - [x] Tree view replaced by Grid view (demonstrated by default)
 - [x] LocalKubernetesExecutor
 - [ ] Reuse of decorated tasks
@@ -20,7 +20,7 @@ kubernetes cluster with remote logging.
 A simpler example for dynamic task mapping using the classical 
 operator approach and taskflow api approach can be found 
 [here](https://github.com/mrn-aglic/examples/tree/main/task_mapping/dags).
-The example also shows how to use templating with dynamic task
+One of the implementations also shows how to use templating with dynamic task
 mapping using a `PostgresOperator`. I made this example for
 a story on Medium, referenced under the _Further reading_
 subsection of the _Dynamic task mapping_ section.
@@ -137,8 +137,8 @@ for each value passed to the expand function.
 
 And define the pipeline:
 `get_rows_count >> create_batches`. The connection
-between `create_batches` and `transfer_to_s3` will be infered
-from the expand and output methods. You should check
+between `create_batches` and `transfer_to_s3` will be inferred
+from the `expand` method and output property. You should check
 your pipelines' structure carefully. 
 
 When you first look at a DAG (without running it), you 
@@ -169,6 +169,7 @@ In Airflow's graph view, the graph should include a number
 of mapped task instances created:
 ![task_mapping_after_run](../../resources/task_mapping_after_run.png)
 
+
 ## Placing limits
 
 The docs specify that you can limit the number of tasks
@@ -180,6 +181,15 @@ instances returned;
 of tasks from consuming all available runer slots.
 The parameter is `max_active_tis_per_dag` and applies 
 across all DAG runs.
+
+## Other dynamic task mapping functions
+Apart from the map function, Airflow provides a couple
+of more convenient functions for dynamic task mapping.
+These include: 
+
+
+However, as of the time of writing, I don't have
+an example for these.
 
 ## Templating
 Templating in the mapping function won't work. We
@@ -205,10 +215,11 @@ interpolate values either call task.render_template
 yourself, or use interpolation:"_ . However, I'm not sure
 how to use interpolation in this example. 
 
+
 ## Important note
 I had quite the difficulty producing this example as the
 task instances of the `transfer_to_s3` task kept randomly
-failling with SIGTERM signalls. My first thought was that
+failing with SIGTERM signals. My first thought was that
 I was running out of RAM. But simply increasing docker 
 RAM resources didn't help. Then I noticed that the scheduler
 was logging that it detected zombie tasks. Zombie tasks

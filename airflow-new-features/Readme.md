@@ -13,7 +13,7 @@ Here is the list of demonstrated new features in Airflow 2.2:
 2. [x] Deferrable operators and triggers
 
 Here is the list of demonstrated new features in Airflow 2.3:
-1. [ ] Dynamic Task Mapping
+1. [x] Dynamic Task Mapping
 2. [x] Tree view replaced by Grid view (demonstrated by default)
 3. [x] LocalKubernetesExecutor
 4. [ ] Reuse of decorated tasks
