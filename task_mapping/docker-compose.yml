@@ -3,19 +3,19 @@ version: '3.8'
 
 # ====================================== AIRFLOW environment VARIABLES =======================================
 x-environment: &airflow_environment
-  - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-  - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=False
-  - AIRFLOW__CORE__LOAD_EXAMPLES=False
-  - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql://airflow:airflow@postgres:5432/airflow
-  - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
-  - AIRFLOW_CONN_SRC=postgresql://myuser:matchpass@source:5432/soccer
-  - HOURS_AGO=4
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'false'
+  AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow@postgres:5432/airflow
+  AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
+  AIRFLOW_CONN_SRC: postgresql://myuser:matchpass@source:5432/soccer
+  HOURS_AGO: 4
 
 x-depends_on: &airflow-depends-on
   postgres:
     condition: service_healthy
 
-x-airflow-image: &airflow_image apache/airflow:2.4.0-python3.9
+x-airflow-image: &airflow_image apache/airflow:2.4.2-python3.10
 
 # ===========
 

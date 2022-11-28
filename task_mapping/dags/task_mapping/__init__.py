@@ -7,6 +7,7 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 PYTHON_OPERATOR_SQL = "SELECT COUNT(*) as CNT FROM match_scores"
 BATCH_SIZE = 80
@@ -65,8 +66,8 @@ with DAG(
     ).expand(op_kwargs=get_batch_starts.output.map(prep_args))
 
     # The postgres operator would probably look something like this (we'll see):
-    # batch_select_op = PostgresOperator.partial(
-    #     task_id="batch_select",
-    #     postgres_conn_id="src",
-    #     sql=f"SELECT * FROM match_scores OFFSET {{{{ task.expand_input.value.parameters.batch_start }}}} LIMIT {BATCH_SIZE}"
-    # ).expand(parameters=get_batch_starts.output)
+    batch_select_postgres = PostgresOperator.partial(
+        task_id="batch_select_postgres",
+        postgres_conn_id="src",
+        sql=f"SELECT * FROM match_scores OFFSET {{{{ task.parameters.batch_start }}}} LIMIT {BATCH_SIZE}",
+    ).expand(parameters=get_batch_starts.output)
