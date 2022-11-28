@@ -86,11 +86,13 @@ multiple DAG runs end-up triggering the consumer.
 Looking at the run details for the `data_aware_consumer_simple`DAG, you'll notice that it 
 has a Data interval. This Data interval depends on which
 DAG runs triggered the consumer.
+
 ![Data interval simple 1 triggered](../../resources/data_interval_simple_1.png)
 
 
 Here is the result after removing the docker containers 
 and volumes a few times: 
+
 ![Data interval simple 2 triggered](../../resources/data_interval_simple_2.png)
 
 As you can see, in this case, two producer DAG runs
@@ -136,7 +138,9 @@ Furthermore, by looking at the Datasets tab and selecting
 the appropriate dataset, you can see which tasks
 triggered the run from the consumer. 
 E.g. when I selected the first element from this list:
+
 ![datasets list](../../resources/datasets_list.png)
+
 I got the following:
 
 ![datasets triggers](../../resources/datasets_triggerers.png)
@@ -145,6 +149,7 @@ As we can see, not all the instances of the task
 triggered a DAG run. Furthermore, it is unclear which
 task instances from which DAG run will trigger the
 consumer DAG:
+
 ![task mapping triggerers](../../resources/task_mapping_triggerers.png)
 
 In this view, you can see which 

@@ -154,6 +154,7 @@ view:
 
 You can also select the operator to view the mapped 
 instances:
+
 ![task_mapping_map_instances](../../resources/task_mapping_grid_op.png)
 
 You can go to `localhost:9000` and login with the
@@ -163,10 +164,12 @@ minio credentials:
 
 In Minio you should see the data in the bucket. Something
 similar to this:
+
 ![task_mapping_bucket](../../resources/task_mapping_bucket_data.png)
 
 In Airflow's graph view, the graph should include a number
 of mapped task instances created:
+
 ![task_mapping_after_run](../../resources/task_mapping_after_run.png)
 
 
@@ -286,7 +289,7 @@ make restart-2.3
 ```
 
 But, return the variable if you plan to re-run the DAG
-after cleaning up the volums/resources.
+after cleaning up the volumes/resources.
 
 **Unfortunately, at this time there is no way to change 
 the environment variable in a docker container while
@@ -479,11 +482,13 @@ turn on the `local_kubernetes_executor_dag`.
 The DAG should run at least 3 times upon start.
 Here is the view of the UI I had after the DAG finished
 a few times:
+
 ![log_view_webui](../../resources/log_view_webui.png)
 
 
 Looking at the `print_task_with_local` task, you can see 
 this log:
+
 ![log_task_with_local](../../resources/log_view_small_local.png)
 
 Also, to confirm that it was actually executed on
@@ -508,6 +513,7 @@ You should see something like:
 
 Looking at the `print_task_with_kubernetes` task, you can
 see this log:
+
 ![log_task_with_kubernetes](../../resources/log_view_small_kubernetes.png)
 
 To confirm that the task was actually executed on
@@ -528,6 +534,7 @@ you should see something like:
 ```shell
 [running]> on host localkubernetesexecutorprintta-7130507b037e450ca3c8ad503742da61
 ```
+
 ![minio_dag_logging](../../resources/minio-dag-logging.png)
 
 And the logs are inside:
