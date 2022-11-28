@@ -22,7 +22,7 @@ Here is the list of demonstrated new features in Airflow 2.3:
 
 Here is the list of demonstrated new features in Airflow 2.4:
 1. [x] Data-aware (data-driven) scheduling
-2. [ ] CronTriggerTimetable vs CrontDataIntervalTimetable
+2. [x] CronTriggerTimetable vs CrontDataIntervalTimetable
 3. [X] Various minor features:
    1. [x] Consolidated schedule parameter
    2. [x] Auto-register DAG used in context manager (used in all examples)
