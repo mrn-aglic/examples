@@ -17,6 +17,14 @@ a local kubernetes cluster. To run the example, read
 the section LocalKubernetesExecutor and set up a local
 kubernetes cluster with remote logging. 
 
+A simpler example for dynamic task mapping using the classical 
+operator approach and taskflow api approach can be found 
+[here](https://github.com/mrn-aglic/examples/tree/main/task_mapping/dags).
+The example also shows how to use templating with dynamic task
+mapping using a `PostgresOperator`. I made this example for
+a story on Medium, referenced under the _Further reading_
+subsection of the _Dynamic task mapping_ section.
+
 # Dynamic task mapping
 
 **Note**: there is the option to run this example on the
@@ -24,7 +32,8 @@ CeleryWorker with the dataset of 195 000 rows, but
 be sure to read the _Important notes_ section before
 trying. Running with `make run-2.3` will cause the example
 to query the smaller dataset. There are also parallel
-task limits in place for running the example. 
+task limits in place for running the example.
+
 
 Dynamic task mapping basically refers to creating a 
 number of task instances at runtime depending on the 
