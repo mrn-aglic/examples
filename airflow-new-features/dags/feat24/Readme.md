@@ -196,8 +196,9 @@ the consumer to run;
 
 ## CronTriggerTimetable vs CronDataIntervalTimetable (varios cron schedules)
 
-**NOTE** I found the behavior of these very confusing,
-so please read the docs [first](https://airflow.apache.org/docs/apache-airflow/stable/concepts/timetable.html#the-time-when-a-dag-run-is-triggered).
+**NOTE** The Grid view on the UI causes confusion
+when pausing and unpausing DAGs, so please 
+[read the docs first](https://airflow.apache.org/docs/apache-airflow/stable/concepts/timetable.html#the-time-when-a-dag-run-is-triggered).
 
 For defining cron schedules, there are basically three 
 options:
@@ -214,17 +215,20 @@ All of the dags have the same cron expression:
 All of the DAGs have their start_date set to 
 15 minutes before `now()`. 
 
-I turned on the DAGs at 19:47 (local time) and this 
+I turned on the DAGs at **22:17** (local time) and this 
 happened:
+
 ![cron_dags](../../resources/cron_dags.png)
 
-As we can see, 2 of the DAGs started twice, and 2
-started three times (for backfill/catchup). 
+As we can see, 2 of the DAGs started twice, and 2 appear
+to have started three times (for backfill/catchup). 
+However, only `CronTriggerTimetable` was actually
+executed three times.
 
 Let's take a look at the DAGs.
 
-The two that started twice use the basic cron expression
-(basic_cron) and `CronDataIntervalTimetable` timetable 
+The first twouse the basic cron expression(basic_cron) 
+and `CronDataIntervalTimetable` timetable 
 (basic_CronDataIntervalTimetable). 
 Let's take a look at the start and end times of their 
 **first dag runs**:
@@ -232,48 +236,65 @@ Let's take a look at the start and end times of their
 
 | Property            | Time                     |
 |---------------------|--------------------------|
-| Data interval start | 2022-11-28, 18:35:00 UTC |
-| Data interval end   | 2022-11-28, 18:40:00 UTC |
+| Data interval start | 2022-11-28, 21:05:00 UTC |
+| Data interval end   | 2022-11-28, 21:10:00 UTC |
 
 
 2. CronDataIntervalTimetable 
 
 | Property            | Time                     |
 |---------------------|--------------------------|
-| Data interval start | 2022-11-28, 18:35:00 UTC |
-| Data interval end   | 2022-11-28, 18:40:00 UTC |
+| Data interval start | 2022-11-28, 21:05:00 UTC |
+| Data interval end   | 2022-11-28, 21:10:00 UTC |
 
 The start and intervals are the same, as are the
 logical dates (both are):
-2022-11-28 18:35:00.
+2022-11-28 21:05:00.
 
-Ok, now for the other two DAGs:
+Ok, now for the other CronTriggerTimetable DAGs
 1. CronTriggerTimetable
 
 | Property            | Time                     |
 |---------------------|--------------------------|
-| Data interval start | 2022-11-28, 18:35:00 UTC |
-| Data interval end   | 2022-11-28, 18:35:00 UTC |                          |
+| Data interval start | 2022-11-28, 21:05:00 UTC |
+| Data interval end   | 2022-11-28, 21:05:00 UTC |                          |
 
-2. CronTriggerTimetable with interval
+The logical date for the first run is also: 
+2022-11-28, 21:05:00 UTC.
+
+The CronTriggerTimetable with interval DAG looks
+like it started three times. It didn't, or at least
+the operators didn't. here is the breakdwon:
+1. actually executed
 
 | Property            | Time                     |
 |---------------------|--------------------------|
-| Data interval start | 2022-11-28, 18:32:00 UTC |
-| Data interval end   | 2022-11-28, 18:35:00 UTC |                          |
+| Data interval start | 2022-11-28, 21:07:00 UTC |
+| Data interval end   | 2022-11-28, 21:10:00 UTC |                          |
 
-We can see that the first DAG runs for these two runs
-are basically before the first two that we looked at
-(cron schedule and CronDataInterval).
+The logical date: 2022-11-28, 21:07:00 UTC.
+
+2. displayed but the operator wasn't executed
+
+| Property            | Time                     |
+|---------------------|--------------------------|
+| Data interval start | 2022-11-28, 21:02:00 UTC |
+| Data interval end   | 2022-11-28, 21:05:00 UTC |
+
+We can confirm that the first run is only displayed,
+but not executed by looking at the Graph view:
+
+![cron_dags_not_executed](../../resources/cron_dags_not_executed.png)
+
 
 What's interesting is the data interval for the 
 `basic_CronTriggerTimetable_interval` DAG. The interval
 set to the timetable is 3 minutes. So the data interval
 seems to have been moved by 3 minutes before the 
-18:35. 
+21:05. 
 
 The documentations says that if we define the interval
-for the CronTriggerTimetable, the data interval for 
+for the `CronTriggerTimetable`, the data interval for 
 a dag run will span from the _specified_trigger_time_ - 
 _interval_ to the _specified_interval_time_.
 In this case the data intervals for the 
@@ -281,7 +302,7 @@ In this case the data intervals for the
 1. start: every 5 minutes - 3 minutes
 2. end: every 5 minutes
 
-If we don't specify the interval the start and end
+If we don't specify the interval, the start and end
 data intervals will be the same (as can be seen 
 by the `basic_CronTriggerTimetable` DAG's runs).
 
@@ -290,8 +311,9 @@ The `CronDataIntervalTimetable` demonstrated by the
 the start and end time of the data interval always
 in the range of 5 minutes. More generally, this 
 timetable creates data intervals according to the
-interval between each cron trigger point. It also
-triggers the DAG to run at the end of each. 
+interval between each cron trigger point. **It also
+triggers the DAG to run at the end of each.** This
+also seems to be the case for the `basic_cron` example.
 
 On the other hand, the `CronTriggerTimetable` timetable
 triggers the DAG to run when the `data_interval_start`,
@@ -300,79 +322,108 @@ unless the interval is specified. If the interval is
 specified, the `logical_date` will be the same as the
 `data_interval_start`.
 
-For the next step, I paused the DAGs at 20:13 local
-time:
+## Pausing and unpausing the DAGs
+
+For this step, I paused the DAGs at **22:21** local
+time (21:21 UTC):
+
 ![cron_dags_paused](../../resources/cron_dags_paused.png)
 
-and waited some time. After about some 24 minutes, I
-unpaused the DAGs again. It was around 20:37 local
+and waited some time. After about some 30 minutes, I
+unpaused the DAGs again. It was around **22:51** local
 time, and the result was:
+
 ![cron_dags_unpaused](../../resources/cron_dags_unpaused.png)
 
 I immediately stopped the DAGs at this point to investigate
 the data intervals. 
+
 We can see that we got 2 new runs for the 
 `basic_cron_schedule` and `basic_CronDataIntervalTimetable`
-DAGs. However, we got 5 new runs for the 
-`basic_CronTriggerTimetable` and 
+DAGs. However, we got 6 (? **pay attention**) 
+new runs for the`basic_CronTriggerTimetable` and 
 `basic_CronTriggerTimetable_interval` DAGs. 
 
 The first new run for the schedule and `basic_CronDataIntervalTimetable`
 DAGs has:
-- data interval start: 2022-11-28, 19:25:00 UTC
-- data interval end: 2022-11-28, 19:30:00 UTC
+- data interval start: 2022-11-28, 21:40:00 UTC
+- data interval end: 2022-11-28, 21:45:00 UTC
 
 Their second run has:
-- data interval start: 2022-11-28, 19:30:00 UTC
-- data interval end: 2022-11-28, 19:35:00 UTC
+- data interval start: 2022-11-28, 21:45:00 UTC
+- data interval end: 2022-11-28, 21:50:00 UTC
+
+So, the DAG runs with start 21:20 up to start 21:35 are
+skipped. That's 4 DAG runs. 
 
 The other two DAGs that use `CronTriggerTimetable` 
-backfilled all of the missing runs between the pause
-and unpause. Let's look at their first and final data
-intervals.
+**seemed to have** backfilled all of the missing runs 
+between the pause and unpause. Indeed, you can
+select the DAG run on the grid view and get the details
+like start and end intervals (see next image below). 
 
-For the `basic_CronTriggerTimetable` DAG, 
-the first **new** DAG run has the following intervals:
-- data interval start: 2022-11-28, 19:15:00 UTC
-- data interval end: 2022-11-28, 19:15:00 UTC
+However, the operator was actually executed for only
+3 DAG runs. 
 
-and for the last one:
-- data interval start: 2022-11-28, 19:35:00 UTC
-- data interval end: 2022-11-28, 19:35:00 UTC
+![cron_dags_false_run](../../resources/cron_dags_false_run.png)
+
+If you look at the image above, there are 3 runs that
+executed the operator (the last 3). The other runs
+show the data interval as the DAG was ran, except,
+that the operator has a missing status. This means
+that the operator wasn't actually executed. The same
+is for `basic_CronTriggerTimetable`.
+
+For the `basic_CronTriggerTimetable`DAG, 
+the first **new actual** DAG run has the following 
+intervals:
+- data interval start: 2022-11-28, 21:40:00 UTC
+- data interval end: 2022-11-28, 21:40:00 UTC
+- logical date: 2022-11-28, 21:40:00 UTC
+
+and the last **actual** run:
+- data interval start: 2022-11-28, 21:50:00 UTC
+- data interval end: 2022-11-28, 21:50:00 UTC
+- logical date: 2022-11-28, 21:50:00 UTC
 
 The other one, the `basic_CronTriggerTimetable_interval`
-DAG, the first **new** DAG run has the following 
+DAG, the first **new actual** DAG run has the following 
 intervals:
-- data interval start: 2022-11-28, 19:12:00 UTC
-- data interval end: 2022-11-28, 19:15:00 UTC
+- data interval start: 2022-11-28, 21:37:00 UTC
+- data interval end: 2022-11-28, 21:40:00 UTC
+- logical date: 2022-11-28, 21:37:00 UTC
 
-and for the last DAG run:
-- data interval start: 2022-11-28, 19:32:00 UTC
-- data interval end: 2022-11-28, 19:35:00 UTC
+and for the last **actual** DAG run:
+- data interval start: 2022-11-28, 21:47:00 UTC
+- data interval end: 2022-11-28, 21:50:00 UTC
+- logical date: 2022-11-28, 21:47:00 UTC
 
-By these examples, I do not quite understand why
-the `basic_cron_schedule` and `CronDataIntervalTimetable`
-DAGs were scheduled twice after unpausing them.
 
-At first glance, this looks to ba in contradiction
-with the documentation found [here](https://airflow.apache.org/docs/apache-airflow/stable/concepts/timetable.html#the-time-when-a-dag-run-is-triggered). 
+What's interesting when using `CronTriggerTimetable`
+is that the operator's state isn't present in the
+grid view for several of the _backfill DAG runs. 
 
-I unpaused the DAGs once more around 21:07 local time.
-Here is the state before I unpaused the DAGs the second
-time:
+![cron_dags_missing_operator](../../resources/cron_dags_missing_operator.png)
 
-![cron_dags_before_second_unpause](../../resources/cron_dags_before_second_unpause.png)
+If we look at the details, the run id is:
+scheduled__2022-11-28T21:25:00+00:00.
 
-I again got 2 DAG runs for the `basic_cron_schedule` and `CronDataIntervalTimetable`
-DAGs. 
-The first new run for the schedule and `basic_CronDataIntervalTimetable`
-DAGs has:
-- data interval start: 2022-11-28, 19:55:00 UTC
-- data interval end: 2022-11-28, 20:00:00 UTC
+Let's take a look at the graph to confirm that the
+operator was not executed:
 
-Their second run has:
-- data interval start: 2022-11-28, 20:00:00 UTC
-- data interval end: 2022-11-28, 20:05:00 UTC
+![cron_dags_graph_view](../../resources/cron_dags_graph_view.png)
+
+## Summary
+
+Honestly, it is clear to me that the data intervals 
+are different between the two timetables and that
+the basic schedule acts as the 
+`CronDataIntervalTimetable`, but this behaviour with
+backfilling and pausing/unpausing DAGs is confusing.
+
+Again, I suggest that you read the [docs](https://airflow.apache.org/docs/apache-airflow/stable/concepts/timetable.html#the-time-when-a-dag-run-is-triggered).
+
+## The DAGs' definitions
 
 Here are the DAG definitions:
 ```python
