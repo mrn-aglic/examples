@@ -48,7 +48,7 @@ make run
 ```
 
 You can also run only examples specific to certain versions
-with: 
+e.g.: 
 ```shell
 make run-2.2
 ```

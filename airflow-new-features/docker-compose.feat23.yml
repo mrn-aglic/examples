@@ -6,8 +6,6 @@ x-environment: &airflow_environment
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
   AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'false'
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
-  AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
   AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
   AIRFLOW_CONN_WILDFIRES_API: http://wildfires-api:8000
@@ -63,24 +61,6 @@ services:
       - "8080:8080"
     environment: *airflow_environment
     command: webserver
-    depends_on:
-      <<: *airflow-depends-on
-      initdb_adduser:
-        condition: service_completed_successfully
-
-  triggerer:
-    build: .
-    container_name: airflow-feat-triggerer
-    command: triggerer
-    environment: *airflow_environment
-    healthcheck:
-      test: [ "CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"' ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-    volumes:
-      - ./dags:/opt/airflow/dags
     depends_on:
       <<: *airflow-depends-on
       initdb_adduser:

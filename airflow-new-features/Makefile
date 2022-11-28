@@ -23,7 +23,7 @@ run-2.2:
 	make down && make cp-airflow22-ignores && docker-compose -f docker-compose.feat22.yml up
 
 run-2.3:
-	make down && make cp-airflow23-ignores && docker-compose -f docker-compose.yml up
+	make down && make cp-airflow23-ignores && docker-compose -f docker-compose.feat23.yml up
 
 run-2.3-celery:
 	make down && make cp-airflow23-ignores && docker-compose -f docker-compose.feat23.celery.yml up --scale worker=3
