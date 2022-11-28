@@ -146,16 +146,23 @@ can see that there are array brackets next to the name
 of the operator that is going to be dynamically mapped. 
 In our example, that is the `transfer_to_s3` operator.
 
-![task_mapping_1](../../resources/task_mapping_1.png)
+<p align="center">
+<img src="../../resources/task_mapping_1.png" width="60%">
+</p>
 
 When you run the DAG, you should see this in the Grid
 view:
-![task_mapping_grid](../../resources/task_mapping_grid.png)
+
+<p align="center">
+<img src="../../resources/task_mapping_grid.png" width="70%">
+</p>
 
 You can also select the operator to view the mapped 
 instances:
 
-![task_mapping_map_instances](../../resources/task_mapping_grid_op.png)
+<p align="center">
+<img src="../../resources/task_mapping_grid_op.png" width="70%">
+</p>
 
 You can go to `localhost:9000` and login with the
 minio credentials:
@@ -165,12 +172,16 @@ minio credentials:
 In Minio you should see the data in the bucket. Something
 similar to this:
 
-![task_mapping_bucket](../../resources/task_mapping_bucket_data.png)
+<p align="center">
+<img src="../../resources/task_mapping_bucket_data.png" width="60%">
+</p>
 
 In Airflow's graph view, the graph should include a number
 of mapped task instances created:
 
-![task_mapping_after_run](../../resources/task_mapping_after_run.png)
+<p align="center">
+<img src="../../resources/task_mapping_after_run.png" width="60%">
+</p>
 
 
 ## Placing limits
@@ -408,7 +419,9 @@ Bucket created successfully `minio-airflow/airflow-logs`.
 If you navigate to `localhost:9000`, once you login,
 you should see the bucket named airflow-logs.
 
-![minio remote logging](../../resources/minio-remote-logging.png)
+<p align="center">
+  <img src="../../resources/minio-remote-logging.png" width="70%"/>
+</p>
 
 Ok, this was the easy part.
 
@@ -483,13 +496,17 @@ The DAG should run at least 3 times upon start.
 Here is the view of the UI I had after the DAG finished
 a few times:
 
-![log_view_webui](../../resources/log_view_webui.png)
+<p align="center">
+  <img src="../../resources/log_view_webui.png" width="70%"/>
+</p>
 
 
 Looking at the `print_task_with_local` task, you can see 
 this log:
 
-![log_task_with_local](../../resources/log_view_small_local.png)
+<p align="center">
+  <img src="../../resources/log_view_small_local.png" width="100%"/>
+</p>
 
 Also, to confirm that it was actually executed on
 the local executor, find the line marked with "**":
@@ -514,7 +531,9 @@ You should see something like:
 Looking at the `print_task_with_kubernetes` task, you can
 see this log:
 
-![log_task_with_kubernetes](../../resources/log_view_small_kubernetes.png)
+<p align="center">
+  <img src="../../resources/log_view_small_kubernetes.png" width="100%"/>
+</p>
 
 To confirm that the task was actually executed on
 the kubernetes executor, find the line marked with "**":
@@ -535,11 +554,15 @@ you should see something like:
 [running]> on host localkubernetesexecutorprintta-7130507b037e450ca3c8ad503742da61
 ```
 
-![minio_dag_logging](../../resources/minio-dag-logging.png)
+<p align="center">
+  <img src="../../resources/minio-dag-logging.png" width="70%"/>
+</p>
 
 And the logs are inside:
 
-![minio_log_files](../../resources/minio_log_files.png)
+<p align="center">
+  <img src="../../resources/minio_log_files.png" width="70%"/>
+</p>
 
 If you log in to minio s3 storage (presumably running
 on `localhost:9000`), you should see the log files.
