@@ -87,13 +87,16 @@ Looking at the run details for the `data_aware_consumer_simple`DAG, you'll notic
 has a Data interval. This Data interval depends on which
 DAG runs triggered the consumer.
 
-![Data interval simple 1 triggered](../../resources/data_interval_simple_1.png)
-
+<p align="center">
+<img src="../../resources/data_interval_simple_1.png" width="80%">
+</p>
 
 Here is the result after removing the docker containers 
 and volumes a few times: 
 
-![Data interval simple 2 triggered](../../resources/data_interval_simple_2.png)
+<p align="center">
+<img src="../../resources/data_interval_simple_2.png" width="70%">
+</p>
 
 As you can see, in this case, two producer DAG runs
 (or rather the tasks in those runs) triggered the
@@ -107,7 +110,9 @@ This is probably due to multiple parallel runs of the
 You can view the relationship between the datasets and
 DAGs in the webserver UI under the Datasets tab. 
 
-![datasets simple](../../resources/datasets_simple.png)
+<p align="center">
+<img src="../../resources/datasets_simple.png" width="70%">
+</p>
 
 I advise caution when starting DAGs and sharing datasets
 between DAGs. This is what happened to me when I first
@@ -139,18 +144,24 @@ the appropriate dataset, you can see which tasks
 triggered the run from the consumer. 
 E.g. when I selected the first element from this list:
 
-![datasets list](../../resources/datasets_list.png)
+<p align="center">
+<img src="../../resources/datasets_list.png" width="70%">
+</p>
 
 I got the following:
 
-![datasets triggers](../../resources/datasets_triggerers.png)
+<p align="center">
+<img src="../../resources/datasets_triggerers.png" width="70%">
+</p>
 
 As we can see, not all the instances of the task
 triggered a DAG run. Furthermore, it is unclear which
 task instances from which DAG run will trigger the
 consumer DAG:
 
-![task mapping triggerers](../../resources/task_mapping_triggerers.png)
+<p align="center">
+<img src="../../resources/task_mapping_triggerers.png" width="70%">
+</p>
 
 In this view, you can see which 
 runs triggered the consumer. Also, it also seems that
@@ -223,7 +234,10 @@ All of the DAGs have their start_date set to
 I turned on the DAGs at **22:17** (local time) and this 
 happened:
 
-![cron_dags](../../resources/cron_dags.png)
+<p align="center">
+<img src="../../resources/cron_dags.png" width="80%">
+</p>
+
 
 As we can see, 2 of the DAGs started twice, and 2 appear
 to have started three times (for backfill/catchup). 
@@ -289,7 +303,9 @@ The logical date: 2022-11-28, 21:07:00 UTC.
 We can confirm that the first run is only displayed,
 but not executed by looking at the Graph view:
 
-![cron_dags_not_executed](../../resources/cron_dags_not_executed.png)
+<p align="center">
+<img src="../../resources/cron_dags_not_executed.png" width="70%">
+</p>
 
 
 What's interesting is the data interval for the 
@@ -332,13 +348,17 @@ specified, the `logical_date` will be the same as the
 For this step, I paused the DAGs at **22:21** local
 time (21:21 UTC):
 
-![cron_dags_paused](../../resources/cron_dags_paused.png)
+<p align="center">
+<img src="../../resources/cron_dags_paused.png" width="70%">
+</p>
 
 and waited some time. After about some 30 minutes, I
 unpaused the DAGs again. It was around **22:51** local
 time, and the result was:
 
-![cron_dags_unpaused](../../resources/cron_dags_unpaused.png)
+<p align="center">
+<img src="../../resources/cron_dags_unpaused.png" width="70%">
+</p>
 
 I immediately stopped the DAGs at this point to investigate
 the data intervals. 
@@ -370,7 +390,9 @@ like start and end intervals (see next image below).
 However, the operator was actually executed for only
 3 DAG runs. 
 
-![cron_dags_false_run](../../resources/cron_dags_false_run.png)
+<p align="center">
+<img src="../../resources/cron_dags_false_run.png" width="70%">
+</p>
 
 If you look at the image above, there are 3 runs that
 executed the operator (the last 3). The other runs
@@ -408,7 +430,9 @@ What's interesting when using `CronTriggerTimetable`
 is that the operator's state isn't present in the
 grid view for several of the _backfill DAG runs. 
 
-![cron_dags_missing_operator](../../resources/cron_dags_missing_operator.png)
+<p align="center">
+<img src="../../resources/cron_dags_missing_operator.png" width="70%">
+</p>
 
 If we look at the details, the run id is:
 scheduled__2022-11-28T21:25:00+00:00.
@@ -416,7 +440,9 @@ scheduled__2022-11-28T21:25:00+00:00.
 Let's take a look at the graph to confirm that the
 operator was not executed:
 
-![cron_dags_graph_view](../../resources/cron_dags_graph_view.png)
+<p align="center">
+<img src="../../resources/cron_dags_graph_view.png" width="70%">
+</p>
 
 ## Summary
 
