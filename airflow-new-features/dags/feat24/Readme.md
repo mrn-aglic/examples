@@ -444,13 +444,65 @@ operator was not executed:
 <img src="../../resources/cron_dags_graph_view.png" width="70%">
 </p>
 
+## Pausing/unpausing DAGs with static start_date
+
+A colleague suggested that the issue that occurs when
+pausing/unpausing DAGs might be because of the dynamic
+start date used in the initial examples. He also provided
+links to stackoverflow regarding dynamic start date
+(see references 6 and 7).
+
+Therefore I added four more DAGs that use a static
+start date. The lines are commented out so that
+the DAGs do not run a large number of times when
+starting the DAGs in the future. I suggest you adjust
+the start date to your requirements.
+
+I started the DAGs on December 22nd sometime after 
+17:00 UTC. Then I paused the DAGs around 17:15 UTC.
+
+<p align="center">
+<img src="../../resources/cron_static_start_date_paused.png" width="70%">
+</p>
+
+I unpaused the DAGs around 17:31 UTC. This happened:
+
+<p align="center">
+<img src="../../resources/cron_static_start_date_unpaused.png" width="70%">
+</p>
+
+Seems like nothing has changed. However, looking at one
+of the DAGs:
+
+<p align="center">
+<img src="../../resources/basic_crontriggertimetable_interval_static.png" width="70%">
+</p>
+
+we can see that all of the runs executed all of the operators
+after unpause.
+This is also the only DAG whose first instance of the
+DAG run shows that the operator was not executed.
+Let's take a look at the details of the first run:
+
+<p align="center">
+<img src="../../resources/basic_crontriggertimetable_interval_static_dag_run.png" width="70%">
+</p>
+
+If we take a look at the Data interval start it is 16:57,
+and data interval end is 17:00. However, Airflow should 
+schedule the first DAG run to start at the end of
+`start_date + interval`. This explains why the operator
+wasn't executed. However, it still doesn't explain
+why the DAG run was added to the UI.
+
 ## Summary
 
 Honestly, it is clear to me that the data intervals 
 are different between the two timetables and that
 the basic schedule acts as the 
 `CronDataIntervalTimetable`, but this behaviour with
-backfilling and pausing/unpausing DAGs is confusing.
+backfilling and pausing/unpausing DAGs is confusing
+(and is caused by dynamic start date).
 
 Again, I suggest that you read the [docs](https://airflow.apache.org/docs/apache-airflow/stable/concepts/timetable.html#the-time-when-a-dag-run-is-triggered).
 
@@ -543,3 +595,5 @@ All the examples use this new feature.
 3. https://airflow.apache.org/blog/airflow-2.4.0/#auto-register-dags-used-in-a-context-manager-no-more-as-dag-needed
 4. https://www.astronomer.io/blog/apache-airflow-2-4-everything-you-need-to-know/
 5. https://airflow.apache.org/docs/apache-airflow/stable/concepts/timetable.html#the-time-when-a-dag-run-is-triggered
+6. https://stackoverflow.com/questions/57096386/why-does-airflow-changing-start-date-without-renaming-dag
+7. https://stackoverflow.com/questions/41134524/why-is-it-recommended-against-using-a-dynamic-start-date-in-airflow
