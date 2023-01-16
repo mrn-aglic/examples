@@ -3,37 +3,26 @@ version: '3.8'
 
 # ====================================== AIRFLOW environment VARIABLES =======================================
 x-environment: &airflow_environment
-  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
   AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'false'
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
-  AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
   AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
   AIRFLOW_CONN_WILDFIRES_API: http://wildfires-api:8000
+  BATCH_SIZE: 40000
+  ENDPOINT: api/get
+  COUNT_ENDPOINT: count
+  MAX_ACTIVE_TIS_PER_DAG: 8
 
 x-depends_on: &airflow-depends-on
   postgres:
     condition: service_healthy
-  redis:
-    condition: service_healthy
 
-x-airflow-image: &airflow_image apache/airflow:2.4.2-python3.10
+x-airflow-image: &airflow_image apache/airflow:2.5.0-python3.10
 # ===========
 
 
 services:
-  redis:
-    image: redis:latest
-    expose:
-      - 6379
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 30s
-      retries: 50
-    restart: unless-stopped
-
   postgres:
     container_name: airflow-feat-postgres
     image: postgres:14-alpine
@@ -71,7 +60,6 @@ services:
     restart: unless-stopped
     volumes:
       - logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
     ports:
       - "8080:8080"
     environment: *airflow_environment
@@ -99,50 +87,15 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-    environment:
-      <<: *airflow_environment
-      BATCH_SIZE: 50000
-      ENDPOINT: api/get
-      COUNT_ENDPOINT: count
+    environment: *airflow_environment
     command: scheduler
-
-  worker:
-    build: .
-    command: celery worker
-    healthcheck:
-      test:
-        - "CMD-SHELL"
-        - 'celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    env_file:
-      - .env
-    environment:
-      <<: *airflow_environment
-      BATCH_SIZE: 50000
-      ENDPOINT: api/get
-      COUNT_ENDPOINT: count
-      # Required to handle warm shutdown of the celery workers properly
-      # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
-      DUMB_INIT_SETSID: "0"
-    restart: unless-stopped
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - logs:/opt/airflow/logs
-    depends_on:
-      <<: *airflow-depends-on
-      initdb_adduser:
-        condition: service_completed_successfully
-
 
   wildfires-api:
     build:
       context: ./
       dockerfile: wildfires-api/.
-    container_name: airflow-feat-api
     image: feat-wildfires-api
+    container_name: airflow-feat-api
     entrypoint: [ "./entrypoint.sh", "--reload" ]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://wildfires-api:8000/health" ]
@@ -153,7 +106,6 @@ services:
       - ./wildfires-api/app:/wildfires-api/app
     ports:
       - "8000:8000"
-
 
   locals3:
     image: minio/minio
@@ -179,7 +131,7 @@ services:
     environment:
       - USER=user
       - COPY_DIR=false
-      - INPUT_BUCKETS=api-data
+      - INPUT_BUCKETS=datasets
     depends_on:
       - locals3
     entrypoint: /bin/sh ./entrypoint.sh

@@ -16,7 +16,7 @@ x-depends_on: &airflow-depends-on
   postgres:
     condition: service_healthy
 
-x-airflow-image: &airflow_image apache/airflow:2.4.2-python3.10
+x-airflow-image: &airflow_image apache/airflow:2.5.0-python3.10
 # ===========
 
 
@@ -118,6 +118,7 @@ services:
     build:
       context: ./
       dockerfile: wildfires-api/.
+    image: feat-wildfires-api
     container_name: airflow-feat-api
     entrypoint: [ "./entrypoint.sh", "--reload" ]
     healthcheck:

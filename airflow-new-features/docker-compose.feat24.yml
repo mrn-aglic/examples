@@ -91,6 +91,7 @@ services:
       context: ./
       dockerfile: wildfires-api/.
     container_name: airflow-feat-api
+    image: feat-wildfires-api
     entrypoint: [ "./entrypoint.sh", "--reload" ]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://wildfires-api:8000/health" ]

@@ -5,7 +5,7 @@ introduced in Apache Airflow 2.2, 2.3 and 2.4.
 
 
 **One of the most important changes in newer versions of
-Airflow is the deprecation of `execution_date`. 
+Airflow is the deprecation of `execution_date`.
 Look at reference [1]**
 
 Here is the list of demonstrated new features in Airflow 2.2:
@@ -26,6 +26,12 @@ Here is the list of demonstrated new features in Airflow 2.4:
 3. [X] Various minor features:
    1. [x] Consolidated schedule parameter
    2. [x] Auto-register DAG used in context manager (used in all examples)
+
+Here is the list of demonstrated new features available in Airflow 2.5:
+1. [ ] Dynamic mapping over task groups
+2. [ ] New @sensor decorator
+3. [ ] XCom updates for dynamically mapped tasks
+4. [x] Updates to the datasets UI (demonstrated by default)
 
 # Before running the examples
 A one time start of `prep.sh` is required to copy the 
