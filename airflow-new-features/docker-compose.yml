@@ -11,12 +11,16 @@ x-environment: &airflow_environment
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
   AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
   AIRFLOW_CONN_WILDFIRES_API: http://wildfires-api:8000
+  BATCH_SIZE: 5000
+  ENDPOINT: api/get_small
+  COUNT_ENDPOINT: count_small
+  MAX_ACTIVE_TIS_PER_DAG: 8
 
 x-depends_on: &airflow-depends-on
   postgres:
     condition: service_healthy
 
-x-airflow-image: &airflow_image apache/airflow:2.5.0-python3.10
+x-airflow-image: &airflow_image apache/airflow:2.5.1-python3.10
 # ===========
 
 
@@ -105,12 +109,7 @@ services:
       - ./dags:/opt/airflow/dags
       - logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
-    environment:
-      <<: *airflow_environment
-      BATCH_SIZE: 5000
-      ENDPOINT: api/get_small
-      COUNT_ENDPOINT: count_small
-      MAX_ACTIVE_TIS_PER_DAG: 8
+    environment: *airflow_environment
     command: scheduler
 
 

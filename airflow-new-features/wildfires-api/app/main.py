@@ -1,11 +1,12 @@
 import asyncio
 import logging
 import sys
+import typing
 from http.client import OK
 
 import pandas as pd
 from fastapi import FastAPI, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -36,6 +37,27 @@ async def get_data(start: int, limit: int):
     result = df.iloc[start : start + limit]
 
     data = result.to_json(orient="records")
+    return Response(content=data, media_type="application/json")
+
+
+@app.get("/api/get_columns")
+async def get_columns():
+    return list(df.columns)
+
+
+@app.get("/api/get_for_columns")
+async def get_for_columns(
+    start: int, limit: int, columns: typing.Optional[typing.List[str]] = None
+):
+    result = df.iloc[start : start + limit]
+
+    if columns is None:
+        return RedirectResponse(
+            f"/api/get?start={start}&limit={limit}", status_code=303
+        )
+
+    data = result[columns]
+    data = data.to_json(orient="records")
     return Response(content=data, media_type="application/json")
 
 
