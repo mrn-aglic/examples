@@ -21,7 +21,7 @@ MAX_ACTIVE_TIS_PER_DAG = os.environ.get("MAX_ACTIVE_TIS_PER_DAG", None)
 if MAX_ACTIVE_TIS_PER_DAG is not None:
     MAX_ACTIVE_TIS_PER_DAG = int(MAX_ACTIVE_TIS_PER_DAG)
 
-BUCKET = "api-data"
+BUCKET = "task-mapping-api-data"
 EXAMPLE = "simple"
 
 
