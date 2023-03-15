@@ -20,7 +20,7 @@ x-depends_on: &airflow-depends-on
   postgres:
     condition: service_healthy
 
-x-airflow-image: &airflow_image apache/airflow:2.5.1-python3.10
+x-airflow-image: &airflow_image apache/airflow:2.5.2-python3.10
 # ===========
 
 
