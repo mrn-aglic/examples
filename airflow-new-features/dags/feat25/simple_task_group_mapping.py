@@ -1,13 +1,32 @@
+import os
+
 import pendulum
 from airflow import DAG
 from airflow.decorators import task, task_group
+from airflow.models import XCom
 from airflow.operators.python import PythonOperator
+from airflow.utils.session import provide_session
+from sqlalchemy import and_, delete
+
+HOURS_AGO = int(os.environ["HOURS_AGO"])
+
+
+@provide_session
+def cleanup_xcom(context, session=None):
+    dag_run = context["dag_run"]
+    dag_id = dag_run.dag_id
+    run_id = dag_run.run_id
+
+    delete_q = delete(XCom).filter(and_(XCom.dag_id == dag_id, XCom.run_id == run_id))
+    session.execute(delete_q)
+
 
 with DAG(
     dag_id="simple_task_group_mapping",
-    start_date=pendulum.now().subtract(hours=1),
+    start_date=pendulum.now().subtract(hours=HOURS_AGO),
     schedule="0 * * * *",
     render_template_as_native_obj=True,
+    on_success_callback=cleanup_xcom,
     description="This DAG demonstrates the use of task groups with dynamic task mapping using constant values",
     tags=["airflow2.5", "task_group_mapping"],
 ):
@@ -37,8 +56,6 @@ with DAG(
 
     def _sum_values(elements):
         print(f"elements: {elements}")
-        # [print(type(a)) for a in elements]
-
         return sum(elements)
 
     sum_values = PythonOperator(
