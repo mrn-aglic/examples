@@ -116,7 +116,7 @@ services:
   wildfires-api:
     build:
       context: ./
-      dockerfile: wildfires-api/.
+      dockerfile: wildfires-api/Dockerfile
     image: feat-wildfires-api
     container_name: airflow-feat-api
     entrypoint: [ "./entrypoint.sh", "--reload" ]

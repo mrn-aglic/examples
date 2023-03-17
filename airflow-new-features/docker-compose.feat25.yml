@@ -9,8 +9,9 @@ x-environment: &airflow_environment
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
   AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
   AIRFLOW_CONN_WILDFIRES_API: http://wildfires-api:8000
+  USE_SMALL_API: 'true'
   BATCH_SIZE: 40000
-  ENDPOINT: api/get
+  BATCH_SIZE_SMALL: 5000
   COUNT_ENDPOINT: count
   MAX_ACTIVE_TIS_PER_DAG: 8
 
@@ -107,34 +108,34 @@ services:
     ports:
       - "8000:8000"
 
-#  locals3:
-#    image: minio/minio
-#    container_name: airflow-feat-s3
-#    ports:
-#      - "9000:9000"
-#      - "9001:9001"
-#    env_file:
-#      - ./minio/.env
-#    command: server --console-address ":9001" /data
-#    volumes:
-#      - locals3-data:/minio/data
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-#      interval: 30s
-#      timeout: 20s
-#      retries: 3
-#
-#  locals3_init:
-#    build: ./minio/
-#    env_file:
-#      - ./minio/.env
-#    environment:
-#      - USER=user
-#      - COPY_DIR=false
-#      - INPUT_BUCKETS=datasets
-#    depends_on:
-#      - locals3
-#    entrypoint: /bin/sh ./entrypoint.sh
+  locals3:
+    image: minio/minio
+    container_name: airflow-feat-s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - ./minio/.env
+    command: server --console-address ":9001" /data
+    volumes:
+      - locals3-data:/minio/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  locals3_init:
+    build: ./minio/
+    env_file:
+      - ./minio/.env
+    environment:
+      - USER=user
+      - COPY_DIR=false
+      - INPUT_BUCKETS=datasets
+    depends_on:
+      - locals3
+    entrypoint: /bin/sh ./entrypoint.sh
 
 volumes:
   logs:

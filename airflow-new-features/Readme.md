@@ -28,7 +28,7 @@ Here is the list of demonstrated new features in Airflow 2.4:
    2. [x] Auto-register DAG used in context manager (used in all examples)
 
 Here is the list of demonstrated new features available in Airflow 2.5:
-1. [ ] Dynamic mapping over task groups
+1. [x] Dynamic mapping over task groups
 2. [ ] New @sensor decorator
 3. [ ] XCom updates for dynamically mapped tasks
 4. [x] Updates to the datasets UI (demonstrated by default)
