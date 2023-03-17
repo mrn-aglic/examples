@@ -2,7 +2,7 @@
 
 
 DAG_ID=task_group_mapping_example
-TASK_ID=task_id=batch_processing.transfer_to_s3
+TASK_ID=task_id=batch_processing.count_fire_per_year
 MAP_INDEX=0
 
 SCHEDULER_CONTAINER_NAME=airflow-feat-scheduler

@@ -5,7 +5,7 @@ import typing
 from http.client import OK
 
 import pandas as pd
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Query, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
@@ -47,7 +47,7 @@ async def get_columns():
 
 @app.get("/api/get_for_columns")
 async def get_for_columns(
-    start: int, limit: int, columns: typing.Optional[typing.List[str]] = None
+    start: int, limit: int, columns: typing.Optional[typing.List[str]] = Query(None)
 ):
     result = df.iloc[start : start + limit]
 
@@ -56,6 +56,7 @@ async def get_for_columns(
             f"/api/get?start={start}&limit={limit}", status_code=303
         )
 
+    print(result.columns)
     data = result[columns]
     data = data.to_json(orient="records")
     return Response(content=data, media_type="application/json")
