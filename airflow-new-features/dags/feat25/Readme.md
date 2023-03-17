@@ -6,7 +6,7 @@ This subdirectory covers some features introduced in Airflow
 These include:
 1. [x] Dynamic mapping over task groups
 2. [ ] New @sensor decorator
-3. [ ] XCom updates for dynamically mapped tasks
+3. [x] XCom updates for dynamically mapped tasks
 4. [x] Updates to the datasets UI (demonstrated by default)
 
 
@@ -235,5 +235,92 @@ pg = processing_group.expand(my_batch=create_batches.output)
 pg >> final_count
 ```
 
+# XCom updates for dynamically mapped tasks
+
+Airflow from version 2.5.0 allows tasks to pull
+XCom values over specific map indexes [2].
+
+We can use XCom to pull only the results of specific
+mapped tasks by index. The DAG `pull_specific_indexes`
+demonstrates this. 
+
+We start with an operator get some elements:
+```python
+def _obtain_elements():
+    return [
+        {"number": 1},
+        {"number": 2},
+        {"number": 3},
+        {"number": 4},
+        {"number": 5},
+    ]
+
+res = PythonOperator(task_id="obtain_elements", python_callable=_obtain_elements)
+```
+
+The operator `to_map` is the one that is being mapped
+over:
+```python
+def _mapped_tasks(number, **context):
+    task_instance = context["ti"]
+    map_index = task_instance.map_index
+    print(f"{task_instance.task_id}, index {map_index} got element: {number}")
+    return number
+
+
+to_map = PythonOperator.partial(
+    task_id="mapped",
+    python_callable=_mapped_tasks,
+).expand(op_kwargs=res.output)
+```
+
+I demonstrate the pulling of specific mapped values
+using the `xcom_pull` method both in a function and
+using ninja templating:
+```python
+def _puller(**context):
+    task_instance = context["ti"]
+    elements = task_instance.xcom_pull(
+        task_ids='mapped',
+        map_indexes=[1, 4],
+    )
+    print(f"Got elements: {elements}")
+
+
+puller = PythonOperator(
+    task_id="puller",
+    python_callable=_puller,
+)
+
+def _puller_ninja(elements):
+    print(f"Got elements: {elements}")
+
+puller_ninja = PythonOperator(
+    task_id="puller_ninja",
+    python_callable=_puller_ninja,
+    op_kwargs={"elements": "{{ ti.xcom_pull(task_ids='mapped', map_indexes=[2, 3]) }}"}
+)
+```
+
+The `map_indexes` parameter tells xcom which mapped values
+we want to pull. 
+
+Finally, we declare the rest of the dependencies:
+```python
+to_map >> [puller, puller_ninja]
+```
+
+The `res >> to_map` dependency is actually defined using
+the expand function. 
+
+Note that using `map_indexes` is intended for pulling
+the values from mapped tasks. If you try to use it to
+pull the values of a non mapped task, e.g. like `res`
+in this example, you'll get an empty list for all indexes
+except 0. For the 0 index you'll get the first element
+of the list as an array.
+
+
 # References
 1. https://github.com/apache/airflow/blob/main/airflow/utils/task_group.py
+2. https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html#new-features
