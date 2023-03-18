@@ -225,7 +225,7 @@ final_count = PythonOperator(
 
 The function `_final_count` is omitted for brevity.
 
-### Defining the dependencie
+### Defining the dependencies
 
 The dependencies are defined as follows:
 ```python
@@ -233,6 +233,100 @@ get_rows_count >> create_batches
 pg = processing_group.expand(my_batch=create_batches.output)
 
 pg >> final_count
+```
+
+# New @task.sensor decorator
+The new task sensor decorator allows us to turn a regular
+python function to an airflow sensor. You use the decorator
+by defining the:
+- poke interval - the delay between 2 executions of the
+sensor in seconds.
+- mode - reschedule or poke. When poke, the sensor takes
+up the worker slot for the entire duration of its execution
+and sleeps between pokes. Usage advised with short poke 
+intervals or sensors with short runtime.
+When reschedule, the sensor frees up the worker slot
+and is scheduled again at a later time. It's use is advised
+with longer running sensors or longer poke intervals [3].
+- timeout - the time in seconds after which the sensor 
+will fail.
+
+The function also has to return a `PokeReturnValue`
+instance. The instance has two arguments:
+- `is_done` - which specifies whether the sensor needs to
+be rescheduled;
+- `xcom_value` - the value which will be pushed to XCom
+so it can be used by other operators.
+
+For this example I use the [httpstats.us](https://httpstat.us) API.
+The API is a service for generating different HTTP codes.
+We use the service to get a random response status code
+using the endpoint https://httpstat.us/random. Example,
+http://httpstat.us/random/200,201,500-504. The example
+returns one of 7 different status codes: 200, 201, and
+any status code in the range 500-504. **By duplicating
+a range we can increase the probability of certain
+status codes**. This is done in the example:
+```python
+SENSOR_PASS_STATUS_CODES = "200-208"
+
+APPEND_STATUS_CODES = ",".join([SENSOR_PASS_STATUS_CODES for i in range(5)])
+
+STATUS_CODES = (
+    f"100-103,226,300-308,400-426,428-431,451,500-508,510,511,{APPEND_STATUS_CODES}"
+)
+```
+
+Here is the definition of the sensor:
+```python
+@task.sensor(poke_interval=10, timeout=600, mode="reschedule")
+def ping_api():
+    response = requests.get(f"{API_ENDPOINT}/{STATUS_CODES}", headers=HEADERS)
+
+    return_value = None
+    print(f"Status code: {response.status_code}")
+
+    if response.status_code in range(200, 209):
+        condition_met = True
+        return_value = response.json()
+    else:
+        condition_met = False
+        print(f"Condition not met, received status code: {response.status_code}")
+
+    now = pendulum.now().timestamp()
+
+    return PokeReturnValue(
+        is_done=condition_met,
+        xcom_value={"json_response": return_value, "timestamp": now},
+    )
+```
+
+The other operator in the DAG is a regular PythonOperator
+that will read the obtained values by the sensor and 
+print them on the log.
+Here is the definition:
+```python
+def log_result(result):
+    json_response = result["json_response"]
+    timestamp = result["timestamp"]
+
+    status_code = json_response["code"]
+    description = json_response["description"]
+
+    print(f"Obtained status_code: {status_code} at timestamp {pendulum.from_timestamp(timestamp)}"
+          f"with description: {description}")
+    
+
+log = PythonOperator(
+    task_id="log_result",
+    python_callable=log_result,
+    op_kwargs={"result": "{{ ti.xcom_pull(task_ids='ping_api') }}"},
+)
+```
+
+And we define the DAG dependencies:
+```python
+ping_api() >> log
 ```
 
 # XCom updates for dynamically mapped tasks
@@ -324,3 +418,4 @@ of the list as an array.
 # References
 1. https://github.com/apache/airflow/blob/main/airflow/utils/task_group.py
 2. https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html#new-features
+3. https://airflow.apache.org/docs/apache-airflow/stable/_api/airflow/sensors/base/index.html#airflow.sensors.base.BaseSensorOperator
