@@ -6,10 +6,12 @@ x-environment: &airflow_environment
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
   AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'false'
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-  AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow@postgres:5432/airflow
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow@postgres:5432/airflow
   AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
-  AIRFLOW_CONN_SRC: postgresql://myuser:matchpass@source:5432/soccer
+  AIRFLOW_CONN_OWM_API: https://api.openweathermap.org
+  AIRFLOW_CONN_LOCALS3: s3://user:password@?host=http%3A%2F%2Flocals3%3A9000
   HOURS_AGO: 4
+  PYTHONASYNCIODEBUG: 1
 
 x-depends_on: &airflow-depends-on
   postgres:
@@ -62,8 +64,11 @@ services:
         condition: service_completed_successfully
 
   scheduler:
-    image: *airflow_image
+    build: .
+    image: airflow-http-requests-dtm
     restart: unless-stopped
+    env_file:
+      - .env
     healthcheck:
       test: [ "CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"' ]
       interval: 10s
@@ -76,10 +81,59 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - logs:/opt/airflow/logs
+      - ./data:/data
     environment: *airflow_environment
     command: scheduler
 
+  triggerer:
+    image: airflow-http-requests-dtm
+    command: triggerer
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment: *airflow_environment
+    healthcheck:
+      test: [ "CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"' ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./dags:/opt/airflow/dags
+    depends_on:
+      <<: *airflow-depends-on
+      initdb_adduser:
+        condition: service_completed_successfully
+
+
+  locals3:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - ./minio/.env
+    command: server --console-address ":9001" /weatherdata
+    volumes:
+      - locals3-data:/minio/weather_data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  locals3_init:
+    build: ./minio/
+    env_file:
+      - ./minio/.env
+    environment:
+      - USER=user
+      - COPY_DIR=false
+      - INPUT_BUCKETS=weatherdata
+    depends_on:
+      - locals3
+    entrypoint: /bin/sh ./entrypoint.sh
 
 volumes:
+  locals3-data:
   logs:
     name: airflow_logs
