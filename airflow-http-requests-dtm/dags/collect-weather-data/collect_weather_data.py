@@ -1,65 +1,25 @@
 import asyncio
-import glob
-import logging
 import os
-from pathlib import Path
-from tempfile import NamedTemporaryFile
 
-import pandas as pd
 import pendulum
 from airflow import DAG
-from airflow.hooks.base import BaseHook
-from airflow.models import XCom
+from airflow.decorators import task_group
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.hooks.http import HttpAsyncHook
-from airflow.utils.session import provide_session
-from minio import Minio
-from sqlalchemy import and_, delete
+from dags.helpers.shared import (
+    cleanup_files,
+    collect_and_upload_s3,
+    map_response,
+    read_cities,
+    store_to_temp_file,
+)
+from dags.helpers.xcom_cleanup import cleanup_xcom_of_previous_tasks
 
 DAG_ID = "collect_weather_data"
 
 TMP_STORAGE_LOCATION = f"/tmp/{DAG_ID}"
 
-DATA_DIR = "/data"
-USE_COLS = ["city_ascii", "lat", "lng", "country", "iso2", "iso3"]
-
-
 WEATHER_API_KEY = os.environ["WEATHER_API_KEY"]
-
-BATCH_SIZE = 5000
-BATCH_SIZE = 5
-
-
-def read_cities():
-    filename = f"{DATA_DIR}/worldcities.csv"
-
-    # keep_default_na because of iso2 of Namibia = NA
-    world_cities = pd.read_csv(filename, usecols=USE_COLS, keep_default_na=False)
-    # keep the number of requests small
-    world_cities = world_cities.sample(25)
-
-    data = world_cities.to_dict(orient="records")
-
-    result = [
-        {"batch": data[start : start + BATCH_SIZE]}
-        for start in range(0, len(data), BATCH_SIZE)
-    ]
-
-    return result
-
-
-def map_response(json_response: dict, return_data: dict):
-    return {
-        **return_data,
-        "weather_descr": json_response["weather"][0]["description"],
-        "weather": json_response["weather"][0]["main"],
-        "temp": json_response["main"]["temp"],
-        "feels_like": json_response["main"]["feels_like"],
-        "wind_speed": json_response["wind"]["speed"],
-        "lat": json_response["coord"]["lat"],
-        "lng": json_response["coord"]["lon"],
-        "timestamp": pendulum.now().to_iso8601_string(),
-    }
 
 
 async def run_in_loop(async_hook, endpoint, params, return_data):
@@ -70,14 +30,12 @@ async def run_in_loop(async_hook, endpoint, params, return_data):
 
 
 def _make_api_request_for_batch(batch, **context):
-    task_instance = context["ti"]
-    map_index = task_instance.map_index
-    logical_date = context["logical_date"]
-
     async_hook = HttpAsyncHook(method="GET", http_conn_id="OWM_API")
     loop = asyncio.get_event_loop()
 
     coroutines = []
+
+    print(batch)
 
     for city in batch:
         endpoint = "data/2.5/weather"
@@ -94,97 +52,7 @@ def _make_api_request_for_batch(batch, **context):
 
     data = loop.run_until_complete(asyncio.gather(*coroutines))
 
-    Path.mkdir(
-        Path(f"{TMP_STORAGE_LOCATION}/{logical_date}/"), parents=True, exist_ok=True
-    )
-
-    df = pd.DataFrame.from_records(data)
-    file_path = f"{TMP_STORAGE_LOCATION}/{logical_date}/{map_index}-tmp.json"
-    df.to_json(file_path)
-
-
-def _collect_data(s3_conn_id, **context):
-    logical_date = context["logical_date"]
-
-    all_files = glob.glob(f"{TMP_STORAGE_LOCATION}/{logical_date}/*-tmp.json")
-
-    file_dfs = []
-
-    for file in all_files:
-        file_df = pd.read_json(file)
-        file_dfs.append(file_df)
-
-    df = pd.concat(file_dfs, ignore_index=True)
-
-    conn = BaseHook.get_connection(conn_id=s3_conn_id)
-
-    minio_client = Minio(
-        conn.extra_dejson["host"].split("://")[1],
-        access_key=conn.login,
-        secret_key=conn.password,
-        secure=False,
-    )
-
-    with NamedTemporaryFile("w+b") as file:
-        df.to_csv(file.name, index=False)
-
-        bucket = "weatherdata"
-        key = f"{logical_date}.csv"
-        logging.info("Storing object: %s/%s.", bucket, key)
-
-        minio_client.remove_object(bucket_name=bucket, object_name=key)
-
-        result = minio_client.fput_object(
-            bucket_name=bucket, object_name=key, file_path=file.name
-        )
-
-        logging.info("Result of uploading file:")
-        logging.info(result)
-
-
-def _cleanup_files(**context):
-    logical_date = context["logical_date"]
-    tmp_storage = Path(f"{TMP_STORAGE_LOCATION}/{logical_date}/")
-
-    all_files = glob.glob(f"{TMP_STORAGE_LOCATION}/{logical_date}/*-tmp.json")
-
-    for file in all_files:
-        os.remove(file)
-
-    tmp_storage.rmdir()
-
-
-@provide_session
-def cleanup_xcom(context, session=None):
-    dag_run = context["dag_run"]
-    task_instance = context["ti"]
-
-    dag_id = dag_run.dag_id
-    run_id = dag_run.run_id
-    map_index = task_instance.map_index
-    task_id = task_instance.task_id
-
-    delete_q = delete(XCom).filter(
-        and_(
-            XCom.dag_id == dag_id,
-            XCom.run_id == run_id,
-            XCom.task_id == task_id,
-            XCom.map_index == map_index,
-        )
-    )
-
-    session.execute(delete_q)
-
-
-@provide_session
-def cleanup_xcom_dag(context, session=None):
-    dag_run = context["dag_run"]
-    dag_id = dag_run.dag_id
-    run_id = dag_run.run_id
-
-    delete_q = delete(XCom).filter(and_(XCom.dag_id == dag_id, XCom.run_id == run_id))
-
-    session.execute(delete_q)
+    return data
 
 
 with DAG(
@@ -192,7 +60,8 @@ with DAG(
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule="0 * * * *",
     description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping",
-    on_success_callback=cleanup_xcom_dag,
+    # on_success_callback=cleanup_xcom_dag,
+    render_template_as_native_obj=True,
     tags=["airflow2.5", "task mapping"],
 ):
     read_data = PythonOperator(
@@ -200,40 +69,42 @@ with DAG(
         python_callable=read_cities,
     )
 
-    make_batch_http_requests = PythonOperator.partial(
-        task_id="make_batch_http_requests",
-        python_callable=_make_api_request_for_batch,
-        on_success_callback=cleanup_xcom,
-    ).expand(op_kwargs=read_data.output)
+    @task_group(group_id="http_handling")
+    def my_group(cities_data):
+        make_batch_http_requests = PythonOperator(
+            task_id="make_batch_http_requests",
+            python_callable=_make_api_request_for_batch,
+            op_kwargs=cities_data,
+            max_active_tis_per_dag=3,
+        )
+
+        store_to_temp = PythonOperator(
+            task_id="store_to_temp",
+            python_callable=store_to_temp_file,
+            op_kwargs={
+                "cities_data": make_batch_http_requests.output,
+                "tmp_storage_location": TMP_STORAGE_LOCATION,
+            },
+            on_success_callback=cleanup_xcom_of_previous_tasks,
+        )
+
+        make_batch_http_requests >> store_to_temp
 
     collect_data = PythonOperator(
         task_id="collect_data",
         op_kwargs={
             "s3_conn_id": "locals3",
+            "tmp_storage_location": TMP_STORAGE_LOCATION,
         },
-        python_callable=_collect_data,
+        python_callable=collect_and_upload_s3,
     )
 
     cleanup_tmp_files = PythonOperator(
-        task_id="cleanup_tmp_files", python_callable=_cleanup_files
+        task_id="cleanup_tmp_files",
+        op_kwargs={"tmp_storage_location": TMP_STORAGE_LOCATION},
+        python_callable=cleanup_files,
     )
 
-    make_batch_http_requests >> collect_data >> cleanup_tmp_files
+    mapped_groups = my_group.expand(cities_data=read_data.output)
 
-    # NotImplementedError: operator expansion in an expanded task group is not yet supported
-    # @task_group(group_id="batch_processing")
-    # def processing_group(batch):
-    #
-    #     @task
-    #     def collect_data(ex):
-    #         _collect_data(**ex)
-    #
-    #     collect_data.partial().expand(ex=batch)
-    #
-    #
-    # process_node = processing_group.expand(batch=read_data.output)
-
-    # make_http_request = PythonOperator.partial(
-    #     task_id="http_request",
-    #     python_callable=_collect_data,
-    # ).expand_kwargs(read_data.output)
+    mapped_groups >> collect_data >> cleanup_tmp_files

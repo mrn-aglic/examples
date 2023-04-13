@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.context import Context
-from plugins.httpasync.httptrigger import HttpTrigger
+from dags.httpasync.httptrigger import HttpTrigger
 
 
 class HttpSensorAsync(BaseSensorOperator):
