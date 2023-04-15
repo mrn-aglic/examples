@@ -23,7 +23,11 @@ class HttpTrigger(BaseTrigger):
         self.endpoint = endpoint
         self.http_conn_id = http_conn_id
         self.method = method
+
         self.data = data or {}
+
+        self.data = data if isinstance(data, list) else [data]
+
         self.headers = headers or {}
         self.retry_limit = retry_limit
         self.retry_delay = retry_delay
@@ -35,12 +39,17 @@ class HttpTrigger(BaseTrigger):
 
         while retry_num <= self.retry_limit:
             try:
-                response = await http_hook.run(
-                    endpoint=self.endpoint, data=self.data, headers=self.headers
-                )
+                result = []
 
-                data = await response.json()
-                yield TriggerEvent({"data-length": len(data), "data": data})
+                for d in self.data:
+                    response = await http_hook.run(
+                        endpoint=self.endpoint, data=d, headers=self.headers
+                    )
+
+                    single_result = await response.json()
+                    result.append(single_result)
+
+                yield TriggerEvent({"num-results": len(result), "data": result})
             except AirflowException as e:
                 await asyncio.sleep(self.retry_delay)
 

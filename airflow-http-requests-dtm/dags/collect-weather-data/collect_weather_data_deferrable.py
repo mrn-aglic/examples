@@ -7,10 +7,11 @@ from airflow.operators.python import PythonOperator
 from dags.helpers.shared import (
     cleanup_files,
     collect_and_upload_s3,
+    map_response,
     read_cities,
     store_to_temp_file,
 )
-from dags.helpers.xcom_cleanup import cleanup_xcom_dag, cleanup_xcom_of_previous_tasks
+from dags.helpers.xcom_cleanup import cleanup_xcom_of_previous_tasks
 from dags.httpasync.httpdeferrable import HttpSensorAsync
 
 DAG_ID = "collect_weather_data_deferrable"
@@ -19,13 +20,13 @@ TMP_STORAGE_LOCATION = f"/tmp/{DAG_ID}"
 
 WEATHER_API_KEY = os.environ["WEATHER_API_KEY"]
 
-
 with DAG(
     dag_id=DAG_ID,
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule="0 * * * *",
     description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping and deferrable operators",
-    on_success_callback=cleanup_xcom_dag,
+    # on_success_callback=cleanup_xcom_dag,
+    render_template_as_native_obj=True,
     tags=["airflow2.5", "task mapping", "deferrable"],
 ):
     read_data = PythonOperator(
@@ -33,15 +34,49 @@ with DAG(
         python_callable=read_cities,
     )
 
-    def map_read_data_for_deferrable(city):
-        return {**city, "appid": WEATHER_API_KEY}
+    #
+    def map_read_data_for_request(batch):
+        return [
+            {"lat": city["lat"], "lon": city["lng"], "appid": WEATHER_API_KEY}
+            for city in batch["batch"]
+        ]
+
+    def map_read_data_for_deferrable(batch):
+        return {
+            "params_data": [
+                {"lat": city["lat"], "lon": city["lng"], "appid": WEATHER_API_KEY}
+                for city in batch["batch"]
+            ],
+            "cities_data": batch["batch"],
+        }
+
+    def return_data_func(city):
+        print(city)
+        print(type(city))
+        return {
+            "city": city["city_ascii"],
+            "country": city["country"],
+            "iso3": city["iso3"],
+        }
+
+    def join_data_for_storing(result_data, cities_data):
+        data = result_data["data"]
+        cities_data = cities_data["batch"]
+        return {
+            "tmp_storage_location": TMP_STORAGE_LOCATION,
+            "cities_data": [
+                map_response(json_response, return_data_func(city_data))
+                for json_response, city_data in zip(data, cities_data)
+            ],
+        }
 
     @task_group(group_id="http_handling")
-    def my_group(city_data):
-        make_http_request = HttpSensorAsync(
-            task_id="make_http_request",
+    def my_group(cities_data, params_data):
+
+        make_http_requests = HttpSensorAsync(
+            task_id="make_http_requests",
             http_conn_id="OWM_API",
-            data=city_data,
+            data=params_data,
             endpoint="data/2.5/weather",
             max_active_tis_per_dag=3,
         )
@@ -50,18 +85,29 @@ with DAG(
             task_id="store_to_temp",
             python_callable=store_to_temp_file,
             op_kwargs={
-                "city_data": city_data,
-                "http_response": make_http_request.output,
+                "tmp_storage_location": TMP_STORAGE_LOCATION,
+                "cities_data": make_http_requests.output.zip(cities_data).map(
+                    lambda results: join_data_for_storing(*results)
+                ),
             },
             on_success_callback=cleanup_xcom_of_previous_tasks,
         )
 
-        make_http_request >> store_to_temp
+        make_http_requests >> store_to_temp
+
+    # make_http_request = HttpSensorAsync.partial(
+    #     task_id="make_http_request_blah",
+    #     http_conn_id="OWM_API",
+    #     # data=cities_data,
+    #     endpoint="data/2.5/weather",
+    #     max_active_tis_per_dag=3,
+    # ).expand(data=read_data.output.map(map_read_data_for_deferrable))
 
     collect_data = PythonOperator(
         task_id="collect_data",
         op_kwargs={
             "s3_conn_id": "locals3",
+            "tmp_storage_location": TMP_STORAGE_LOCATION,
         },
         python_callable=collect_and_upload_s3,
     )
@@ -70,5 +116,8 @@ with DAG(
         task_id="cleanup_tmp_files", python_callable=cleanup_files
     )
 
-    mapped_groups = my_group.expand(city_data=read_data.output)
+    mapped_groups = my_group.expand_kwargs(
+        read_data.output.map(map_read_data_for_deferrable)
+    )
+
     mapped_groups >> collect_data >> cleanup_tmp_files
