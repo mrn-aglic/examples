@@ -13,7 +13,7 @@ from dags.helpers.shared import (
     read_cities,
     store_to_temp_file,
 )
-from dags.helpers.xcom_cleanup import cleanup_xcom_of_previous_tasks
+from dags.helpers.xcom_cleanup import cleanup_xcom_dag, cleanup_xcom_of_previous_tasks
 
 DAG_ID = "collect_weather_data"
 
@@ -34,8 +34,6 @@ def _make_api_request_for_batch(batch, **context):
     loop = asyncio.get_event_loop()
 
     coroutines = []
-
-    print(batch)
 
     for city in batch:
         endpoint = "data/2.5/weather"
@@ -60,9 +58,9 @@ with DAG(
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule="0 * * * *",
     description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping",
-    # on_success_callback=cleanup_xcom_dag,
+    on_success_callback=cleanup_xcom_dag,
     render_template_as_native_obj=True,
-    tags=["airflow2.5", "task mapping"],
+    tags=["airflow2.5", "task mapping", "asyncio"],
 ):
     read_data = PythonOperator(
         task_id="read_data",
