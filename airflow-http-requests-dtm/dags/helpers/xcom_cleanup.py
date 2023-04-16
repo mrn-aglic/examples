@@ -48,4 +48,5 @@ def cleanup_xcom_of_previous_tasks(context):
     ]
 
     for ti in task_instances:
-        ti.clear_xcom_data()
+        if ti is not None:
+            ti.clear_xcom_data()
