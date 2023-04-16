@@ -21,6 +21,7 @@ with DAG(
     schedule="0 * * * *",
     description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping and deferrable operators",
     on_success_callback=cleanup_xcom_dag,
+    on_failure_callback=cleanup_xcom_dag,
     render_template_as_native_obj=True,
     tags=["airflow2.5", "task mapping", "deferrable", "failing"],
 ):
