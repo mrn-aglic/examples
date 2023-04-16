@@ -34,14 +34,8 @@ with DAG(
         python_callable=read_cities,
     )
 
-    #
-    def map_read_data_for_request(batch):
-        return [
-            {"lat": city["lat"], "lon": city["lng"], "appid": WEATHER_API_KEY}
-            for city in batch["batch"]
-        ]
-
     def map_read_data_for_deferrable(batch):
+        print(batch)
         return {
             "params_data": [
                 {"lat": city["lat"], "lon": city["lng"], "appid": WEATHER_API_KEY}
@@ -51,8 +45,6 @@ with DAG(
         }
 
     def return_data_func(city):
-        print(city)
-        print(type(city))
         return {
             "city": city["city_ascii"],
             "country": city["country"],
@@ -63,7 +55,6 @@ with DAG(
         data = result_data["data"]
         cities_data = cities_data["batch"]
         return {
-            "tmp_storage_location": TMP_STORAGE_LOCATION,
             "cities_data": [
                 map_response(json_response, return_data_func(city_data))
                 for json_response, city_data in zip(data, cities_data)
