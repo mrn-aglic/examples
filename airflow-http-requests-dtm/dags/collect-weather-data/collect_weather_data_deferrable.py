@@ -11,7 +11,7 @@ from dags.helpers.shared import (
     read_cities,
     store_to_temp_file,
 )
-from dags.helpers.xcom_cleanup import cleanup_xcom_of_previous_tasks
+from dags.helpers.xcom_cleanup import cleanup_xcom_dag, cleanup_xcom_of_previous_tasks
 from dags.httpasync.httpdeferrable import HttpSensorAsync
 
 DAG_ID = "collect_weather_data_deferrable"
@@ -25,7 +25,7 @@ with DAG(
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule="0 * * * *",
     description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping and deferrable operators",
-    # on_success_callback=cleanup_xcom_dag,
+    on_success_callback=cleanup_xcom_dag,
     render_template_as_native_obj=True,
     tags=["airflow2.5", "task mapping", "deferrable"],
 ):
@@ -35,7 +35,6 @@ with DAG(
     )
 
     def map_read_data_for_deferrable(batch):
-        print(batch)
         return {
             "params_data": [
                 {"lat": city["lat"], "lon": city["lng"], "appid": WEATHER_API_KEY}
@@ -51,19 +50,11 @@ with DAG(
             "iso3": city["iso3"],
         }
 
-    def join_data_for_storing(result_data, cities_data):
-        data = result_data["data"]
-        cities_data = cities_data["batch"]
-        return {
-            "cities_data": [
-                map_response(json_response, return_data_func(city_data))
-                for json_response, city_data in zip(data, cities_data)
-            ],
-        }
+    def join_data_for_storing(result_data, city_data):
+        return map_response(result_data, return_data_func(city_data))
 
     @task_group(group_id="http_handling")
     def my_group(cities_data, params_data):
-
         make_http_requests = HttpSensorAsync(
             task_id="make_http_requests",
             http_conn_id="OWM_API",
@@ -86,14 +77,6 @@ with DAG(
 
         make_http_requests >> store_to_temp
 
-    # make_http_request = HttpSensorAsync.partial(
-    #     task_id="make_http_request_blah",
-    #     http_conn_id="OWM_API",
-    #     # data=cities_data,
-    #     endpoint="data/2.5/weather",
-    #     max_active_tis_per_dag=3,
-    # ).expand(data=read_data.output.map(map_read_data_for_deferrable))
-
     collect_data = PythonOperator(
         task_id="collect_data",
         op_kwargs={
@@ -104,10 +87,13 @@ with DAG(
     )
 
     cleanup_tmp_files = PythonOperator(
-        task_id="cleanup_tmp_files", python_callable=cleanup_files
+        task_id="cleanup_tmp_files",
+        python_callable=cleanup_files,
+        op_kwargs={"tmp_storage_location": TMP_STORAGE_LOCATION},
     )
 
     mapped_groups = my_group.expand_kwargs(
+        # cities_data=read_data.output
         read_data.output.map(map_read_data_for_deferrable)
     )
 

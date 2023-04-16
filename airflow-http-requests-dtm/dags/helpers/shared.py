@@ -64,6 +64,7 @@ def store_to_temp_file(cities_data, tmp_storage_location, **context):
 
 def collect_and_upload_s3(s3_conn_id, tmp_storage_location, **context):
     logical_date = context["logical_date"]
+    dag = context["dag"]
 
     all_files = glob.glob(f"{tmp_storage_location}/{logical_date}/*-tmp.json")
 
@@ -88,7 +89,7 @@ def collect_and_upload_s3(s3_conn_id, tmp_storage_location, **context):
         df.to_csv(file.name, index=False)
 
         bucket = "weatherdata"
-        key = f"{logical_date}.csv"
+        key = f"{dag.dag_id}/{logical_date}.csv"
         logging.info("Storing object: %s/%s.", bucket, key)
 
         minio_client.remove_object(bucket_name=bucket, object_name=key)
