@@ -49,7 +49,7 @@ class HttpTrigger(BaseTrigger):
                     single_result = await response.json()
                     result.append(single_result)
 
-                yield TriggerEvent({"num-results": len(result), "data": result})
+                yield TriggerEvent({"data": result})
             except AirflowException as e:
                 await asyncio.sleep(self.retry_delay)
 
