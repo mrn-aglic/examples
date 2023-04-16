@@ -24,7 +24,7 @@ with DAG(
     dag_id=DAG_ID,
     start_date=pendulum.now().subtract(hours=int(os.environ["HOURS_AGO"])),
     schedule="0 * * * *",
-    description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping and deferrable operators",
+    description="This DAG demonstrates collecting weather data for multiple cities using dynamic task mapping over task group and deferrable operators",
     on_success_callback=cleanup_xcom_dag,
     render_template_as_native_obj=True,
     tags=["airflow2.5", "task mapping", "deferrable"],
