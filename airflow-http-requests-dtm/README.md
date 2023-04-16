@@ -9,11 +9,21 @@ DAGs:
 Medium article related to the DAGs:
 
 
-While working on these two DAGs, I came upon something
+### collect_weather_data_deferrable_demo DAG
+While working on the previous two DAGs, I came upon something
 interesting and created the DAG:
 - collect_weather_data_deferrable_demo
 
 Medium article related to the DAG:
+
+
+### callback_test DAG
+There is also the callback_test DAG that I used
+for testing how on success callbacks work on the DAG
+and operator levels.
+
+Medium article related to the DAG:
+https://medium.com/@MarinAgli1/a-quick-look-into-airflow-success-callback-functions-d140e60d3e67
 
 ## Running
 First, get your API key from: https://openweathermap.org.
