@@ -15,7 +15,7 @@ interesting and created the DAG:
 - collect_weather_data_deferrable_demo
 
 Medium article related to the DAG:
-
+https://medium.com/@MarinAgli1/dynamic-task-mapping-over-a-custom-deferrable-sensor-in-a-task-group-d0b12545886a
 
 ### callback_test DAG
 There is also the callback_test DAG that I used
