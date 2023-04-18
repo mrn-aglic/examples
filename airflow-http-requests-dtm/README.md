@@ -7,7 +7,7 @@ DAGs:
 - collect_weather_data_deferrable
 
 Medium article related to the DAGs:
-
+https://medium.com/@MarinAgli1/making-async-api-calls-with-airflow-dynamic-task-mapping-d0cbd3066ebb
 
 ### collect_weather_data_deferrable_demo DAG
 While working on the previous two DAGs, I came upon something
@@ -35,3 +35,11 @@ Run the command:
 ```shell
 make run
 ```
+
+# HttpSensorAsync and HttpTrigger
+The implementations of these two classes are based
+on those found on Astronomer's GitHub:
+
+https://github.com/astronomer/astronomer-providers/blob/1.15.1/astronomer/providers/http/sensors/http.py
+
+https://github.com/astronomer/astronomer-providers/blob/1.15.1/astronomer/providers/http/triggers/http.py
