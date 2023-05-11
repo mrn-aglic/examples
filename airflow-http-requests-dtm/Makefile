@@ -5,7 +5,7 @@ down:
 	docker compose down --volumes
 
 run:
-	make down && docker-compose up
+	make down && docker compose up
 
 build-run:
-	make down && docker-compose up --build
+	make down && docker compose up --build
